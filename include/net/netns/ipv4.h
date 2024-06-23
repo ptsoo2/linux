@@ -6,10 +6,10 @@
 #ifndef __NETNS_IPV4_H__
 #define __NETNS_IPV4_H__
 
-#include <linux/uidgid.h>
-#include <net/inet_frag.h>
 #include <linux/rcupdate.h>
 #include <linux/siphash.h>
+#include <linux/uidgid.h>
+#include <net/inet_frag.h>
 
 struct ctl_table_header;
 struct ipv4_devconf;
@@ -17,65 +17,71 @@ struct fib_rules_ops;
 struct hlist_head;
 struct fib_table;
 struct sock;
-struct local_ports {
-	seqlock_t	lock;
-	int		range[2];
-	bool		warned;
+struct local_ports
+{
+	seqlock_t lock;
+	int range[2];
+	bool warned;
 };
 
-struct ping_group_range {
-	seqlock_t	lock;
-	kgid_t		range[2];
+struct ping_group_range
+{
+	seqlock_t lock;
+	kgid_t range[2];
 };
 
 struct inet_hashinfo;
 
-struct inet_timewait_death_row {
-	atomic_t		tw_count;
-	char			tw_pad[L1_CACHE_BYTES - sizeof(atomic_t)];
+/// @brief
+/// gpt: 소켓 상태가 TIME_WAIT 일 때 관리하기 위한 구조체
+struct inet_timewait_death_row
+{
+	atomic_t tw_count;
+	char tw_pad[L1_CACHE_BYTES - sizeof(atomic_t)];
 
-	struct inet_hashinfo 	*hashinfo;
-	int			sysctl_max_tw_buckets;
+	struct inet_hashinfo* hashinfo;
+	int sysctl_max_tw_buckets;
 };
 
 struct tcp_fastopen_context;
 
-struct netns_ipv4 {
-	/* Please keep tcp_death_row at first field in netns_ipv4 */
+struct netns_ipv4
+{
+	// netns_ipv4 구조체의 첫 번째 필드로 tcp_death_row를 유지하십시오.
 	struct inet_timewait_death_row tcp_death_row ____cacheline_aligned_in_smp;
 
 #ifdef CONFIG_SYSCTL
-	struct ctl_table_header	*forw_hdr;
-	struct ctl_table_header	*frags_hdr;
-	struct ctl_table_header	*ipv4_hdr;
-	struct ctl_table_header *route_hdr;
-	struct ctl_table_header *xfrm4_hdr;
+	struct ctl_table_header* forw_hdr;
+	struct ctl_table_header* frags_hdr;
+	struct ctl_table_header* ipv4_hdr;
+	struct ctl_table_header* route_hdr;
+	struct ctl_table_header* xfrm4_hdr;
 #endif
-	struct ipv4_devconf	*devconf_all;
-	struct ipv4_devconf	*devconf_dflt;
-	struct ip_ra_chain __rcu *ra_chain;
-	struct mutex		ra_mutex;
+	struct ipv4_devconf* devconf_all;
+	struct ipv4_devconf* devconf_dflt;
+	struct ip_ra_chain __rcu* ra_chain;
+	struct mutex ra_mutex;
 #ifdef CONFIG_IP_MULTIPLE_TABLES
-	struct fib_rules_ops	*rules_ops;
-	struct fib_table __rcu	*fib_main;
-	struct fib_table __rcu	*fib_default;
-	unsigned int		fib_rules_require_fldissect;
-	bool			fib_has_custom_rules;
+	struct fib_rules_ops* rules_ops;
+	struct fib_table __rcu* fib_main;
+	struct fib_table __rcu* fib_default;
+	unsigned int fib_rules_require_fldissect;
+	bool fib_has_custom_rules;
 #endif
-	bool			fib_has_custom_local_routes;
-	bool			fib_offload_disabled;
+	bool fib_has_custom_local_routes;
+	bool fib_offload_disabled;
 #ifdef CONFIG_IP_ROUTE_CLASSID
-	int			fib_num_tclassid_users;
+	int fib_num_tclassid_users;
 #endif
-	struct hlist_head	*fib_table_hash;
-	struct sock		*fibnl;
+	struct hlist_head* fib_table_hash;
+	struct sock* fibnl;
 
-	struct sock  * __percpu	*icmp_sk;
-	struct sock		*mc_autojoin_sk;
+	struct sock* __percpu* icmp_sk;
+	struct sock* mc_autojoin_sk;
 
-	struct inet_peer_base	*peers;
-	struct sock  * __percpu	*tcp_sk;
-	struct fqdir		*fqdir;
+	struct inet_peer_base* peers;
+	struct sock* __percpu* tcp_sk;
+	struct fqdir* fqdir;
 
 	u8 sysctl_icmp_echo_ignore_all;
 	u8 sysctl_icmp_echo_enable_probe;
@@ -172,8 +178,8 @@ struct netns_ipv4 {
 	unsigned long sysctl_tcp_comp_sack_slack_ns;
 	int sysctl_max_syn_backlog;
 	int sysctl_tcp_fastopen;
-	const struct tcp_congestion_ops __rcu  *tcp_congestion_control;
-	struct tcp_fastopen_context __rcu *tcp_fastopen_ctx;
+	const struct tcp_congestion_ops __rcu* tcp_congestion_control;
+	struct tcp_fastopen_context __rcu* tcp_fastopen_ctx;
 	unsigned int sysctl_tcp_fastopen_blackhole_timeout;
 	atomic_t tfo_active_disable_times;
 	unsigned long tfo_active_disable_stamp;
@@ -197,16 +203,16 @@ struct netns_ipv4 {
 	atomic_t dev_addr_genid;
 
 #ifdef CONFIG_SYSCTL
-	unsigned long *sysctl_local_reserved_ports;
+	unsigned long* sysctl_local_reserved_ports;
 	int sysctl_ip_prot_sock;
 #endif
 
 #ifdef CONFIG_IP_MROUTE
 #ifndef CONFIG_IP_MROUTE_MULTIPLE_TABLES
-	struct mr_table		*mrt;
+	struct mr_table* mrt;
 #else
-	struct list_head	mr_tables;
-	struct fib_rules_ops	*mr_rules_ops;
+	struct list_head mr_tables;
+	struct fib_rules_ops* mr_rules_ops;
 #endif
 #endif
 #ifdef CONFIG_IP_ROUTE_MULTIPATH
@@ -215,13 +221,13 @@ struct netns_ipv4 {
 	u8 sysctl_fib_multipath_hash_policy;
 #endif
 
-	struct fib_notifier_ops	*notifier_ops;
-	unsigned int	fib_seq;	/* protected by rtnl_mutex */
+	struct fib_notifier_ops* notifier_ops;
+	unsigned int fib_seq; /* protected by rtnl_mutex */
 
-	struct fib_notifier_ops	*ipmr_notifier_ops;
-	unsigned int	ipmr_seq;	/* protected by rtnl_mutex */
+	struct fib_notifier_ops* ipmr_notifier_ops;
+	unsigned int ipmr_seq; /* protected by rtnl_mutex */
 
-	atomic_t	rt_genid;
-	siphash_key_t	ip_id_key;
+	atomic_t rt_genid;
+	siphash_key_t ip_id_key;
 };
 #endif

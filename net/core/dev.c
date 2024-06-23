@@ -68,88 +68,88 @@
  *				        - netif_rx() feedback
  */
 
-#include <linux/uaccess.h>
+#include <asm/current.h>
+#include <linux/audit.h>
 #include <linux/bitops.h>
-#include <linux/capability.h>
-#include <linux/cpu.h>
-#include <linux/types.h>
-#include <linux/kernel.h>
-#include <linux/hash.h>
-#include <linux/slab.h>
-#include <linux/sched.h>
-#include <linux/sched/mm.h>
-#include <linux/mutex.h>
-#include <linux/rwsem.h>
-#include <linux/string.h>
-#include <linux/mm.h>
-#include <linux/socket.h>
-#include <linux/sockios.h>
-#include <linux/errno.h>
-#include <linux/interrupt.h>
-#include <linux/if_ether.h>
-#include <linux/netdevice.h>
-#include <linux/etherdevice.h>
-#include <linux/ethtool.h>
-#include <linux/skbuff.h>
-#include <linux/kthread.h>
 #include <linux/bpf.h>
 #include <linux/bpf_trace.h>
-#include <net/net_namespace.h>
-#include <net/sock.h>
-#include <net/busy_poll.h>
+#include <linux/capability.h>
+#include <linux/cpu.h>
+#include <linux/cpu_rmap.h>
+#include <linux/crash_dump.h>
+#include <linux/ctype.h>
+#include <linux/delay.h>
+#include <linux/dmaengine.h>
+#include <linux/err.h>
+#include <linux/errno.h>
+#include <linux/errqueue.h>
+#include <linux/etherdevice.h>
+#include <linux/ethtool.h>
+#include <linux/hash.h>
+#include <linux/hashtable.h>
+#include <linux/highmem.h>
+#include <linux/hrtimer.h>
+#include <linux/if_arp.h>
+#include <linux/if_ether.h>
+#include <linux/if_macvlan.h>
+#include <linux/if_vlan.h>
+#include <linux/in.h>
+#include <linux/indirect_call_wrapper.h>
+#include <linux/inetdevice.h>
+#include <linux/init.h>
+#include <linux/interrupt.h>
+#include <linux/ip.h>
+#include <linux/ipv6.h>
+#include <linux/jhash.h>
+#include <linux/kernel.h>
+#include <linux/kthread.h>
+#include <linux/mm.h>
+#include <linux/module.h>
+#include <linux/mutex.h>
+#include <linux/net_namespace.h>
+#include <linux/netdevice.h>
+#include <linux/netfilter_ingress.h>
+#include <linux/netpoll.h>
+#include <linux/once_lite.h>
+#include <linux/pm_runtime.h>
+#include <linux/prandom.h>
+#include <linux/random.h>
+#include <linux/rcupdate.h>
 #include <linux/rtnetlink.h>
+#include <linux/rwsem.h>
+#include <linux/sched.h>
+#include <linux/sched/mm.h>
+#include <linux/sctp.h>
+#include <linux/skbuff.h>
+#include <linux/slab.h>
+#include <linux/socket.h>
+#include <linux/sockios.h>
 #include <linux/stat.h>
+#include <linux/static_key.h>
+#include <linux/string.h>
+#include <linux/types.h>
+#include <linux/uaccess.h>
+#include <linux/vmalloc.h>
+#include <net/busy_poll.h>
+#include <net/checksum.h>
+#include <net/devlink.h>
 #include <net/dsa.h>
 #include <net/dst.h>
 #include <net/dst_metadata.h>
 #include <net/gro.h>
-#include <net/pkt_sched.h>
-#include <net/pkt_cls.h>
-#include <net/checksum.h>
-#include <net/xfrm.h>
-#include <linux/highmem.h>
-#include <linux/init.h>
-#include <linux/module.h>
-#include <linux/netpoll.h>
-#include <linux/rcupdate.h>
-#include <linux/delay.h>
-#include <net/iw_handler.h>
-#include <asm/current.h>
-#include <linux/audit.h>
-#include <linux/dmaengine.h>
-#include <linux/err.h>
-#include <linux/ctype.h>
-#include <linux/if_arp.h>
-#include <linux/if_vlan.h>
-#include <linux/ip.h>
 #include <net/ip.h>
+#include <net/iw_handler.h>
 #include <net/mpls.h>
-#include <linux/ipv6.h>
-#include <linux/in.h>
-#include <linux/jhash.h>
-#include <linux/random.h>
+#include <net/net_namespace.h>
+#include <net/pkt_cls.h>
+#include <net/pkt_sched.h>
+#include <net/sock.h>
+#include <net/udp_tunnel.h>
+#include <net/xfrm.h>
 #include <trace/events/napi.h>
 #include <trace/events/net.h>
-#include <trace/events/skb.h>
 #include <trace/events/qdisc.h>
-#include <linux/inetdevice.h>
-#include <linux/cpu_rmap.h>
-#include <linux/static_key.h>
-#include <linux/hashtable.h>
-#include <linux/vmalloc.h>
-#include <linux/if_macvlan.h>
-#include <linux/errqueue.h>
-#include <linux/hrtimer.h>
-#include <linux/netfilter_ingress.h>
-#include <linux/crash_dump.h>
-#include <linux/sctp.h>
-#include <net/udp_tunnel.h>
-#include <linux/net_namespace.h>
-#include <linux/indirect_call_wrapper.h>
-#include <net/devlink.h>
-#include <linux/pm_runtime.h>
-#include <linux/prandom.h>
-#include <linux/once_lite.h>
+#include <trace/events/skb.h>
 
 #include "net-sysfs.h"
 
@@ -161,16 +161,13 @@
 static DEFINE_SPINLOCK(ptype_lock);
 static DEFINE_SPINLOCK(offload_lock);
 struct list_head ptype_base[PTYPE_HASH_SIZE] __read_mostly;
-struct list_head ptype_all __read_mostly;	/* Taps */
+struct list_head ptype_all __read_mostly; /* Taps */
 static struct list_head offload_base __read_mostly;
 
-static int netif_rx_internal(struct sk_buff *skb);
-static int call_netdevice_notifiers_info(unsigned long val,
-					 struct netdev_notifier_info *info);
-static int call_netdevice_notifiers_extack(unsigned long val,
-					   struct net_device *dev,
-					   struct netlink_ext_ack *extack);
-static struct napi_struct *napi_by_id(unsigned int napi_id);
+static int netif_rx_internal(struct sk_buff* skb);
+static int call_netdevice_notifiers_info(unsigned long val, struct netdev_notifier_info* info);
+static int call_netdevice_notifiers_extack(unsigned long val, struct net_device* dev, struct netlink_ext_ack* extack);
+static struct napi_struct* napi_by_id(unsigned int napi_id);
 
 /*
  * The @dev_base_head list is protected by @dev_base_lock and the rtnl
@@ -204,42 +201,41 @@ static DEFINE_READ_MOSTLY_HASHTABLE(napi_hash, 8);
 
 static DECLARE_RWSEM(devnet_rename_sem);
 
-static inline void dev_base_seq_inc(struct net *net)
+static inline void dev_base_seq_inc(struct net* net)
 {
 	while (++net->dev_base_seq == 0)
 		;
 }
 
-static inline struct hlist_head *dev_name_hash(struct net *net, const char *name)
+static inline struct hlist_head* dev_name_hash(struct net* net, const char* name)
 {
 	unsigned int hash = full_name_hash(net, name, strnlen(name, IFNAMSIZ));
 
 	return &net->dev_name_head[hash_32(hash, NETDEV_HASHBITS)];
 }
 
-static inline struct hlist_head *dev_index_hash(struct net *net, int ifindex)
+static inline struct hlist_head* dev_index_hash(struct net* net, int ifindex)
 {
 	return &net->dev_index_head[ifindex & (NETDEV_HASHENTRIES - 1)];
 }
 
-static inline void rps_lock(struct softnet_data *sd)
+static inline void rps_lock(struct softnet_data* sd)
 {
 #ifdef CONFIG_RPS
 	spin_lock(&sd->input_pkt_queue.lock);
 #endif
 }
 
-static inline void rps_unlock(struct softnet_data *sd)
+static inline void rps_unlock(struct softnet_data* sd)
 {
 #ifdef CONFIG_RPS
 	spin_unlock(&sd->input_pkt_queue.lock);
 #endif
 }
 
-static struct netdev_name_node *netdev_name_node_alloc(struct net_device *dev,
-						       const char *name)
+static struct netdev_name_node* netdev_name_node_alloc(struct net_device* dev, const char* name)
 {
-	struct netdev_name_node *name_node;
+	struct netdev_name_node* name_node;
 
 	name_node = kmalloc(sizeof(*name_node), GFP_KERNEL);
 	if (!name_node)
@@ -250,10 +246,9 @@ static struct netdev_name_node *netdev_name_node_alloc(struct net_device *dev,
 	return name_node;
 }
 
-static struct netdev_name_node *
-netdev_name_node_head_alloc(struct net_device *dev)
+static struct netdev_name_node* netdev_name_node_head_alloc(struct net_device* dev)
 {
-	struct netdev_name_node *name_node;
+	struct netdev_name_node* name_node;
 
 	name_node = netdev_name_node_alloc(dev, dev->name);
 	if (!name_node)
@@ -262,51 +257,43 @@ netdev_name_node_head_alloc(struct net_device *dev)
 	return name_node;
 }
 
-static void netdev_name_node_free(struct netdev_name_node *name_node)
+static void netdev_name_node_free(struct netdev_name_node* name_node)
 {
 	kfree(name_node);
 }
 
-static void netdev_name_node_add(struct net *net,
-				 struct netdev_name_node *name_node)
+static void netdev_name_node_add(struct net* net, struct netdev_name_node* name_node)
 {
-	hlist_add_head_rcu(&name_node->hlist,
-			   dev_name_hash(net, name_node->name));
+	hlist_add_head_rcu(&name_node->hlist, dev_name_hash(net, name_node->name));
 }
 
-static void netdev_name_node_del(struct netdev_name_node *name_node)
+static void netdev_name_node_del(struct netdev_name_node* name_node)
 {
 	hlist_del_rcu(&name_node->hlist);
 }
 
-static struct netdev_name_node *netdev_name_node_lookup(struct net *net,
-							const char *name)
+static struct netdev_name_node* netdev_name_node_lookup(struct net* net, const char* name)
 {
-	struct hlist_head *head = dev_name_hash(net, name);
-	struct netdev_name_node *name_node;
+	struct hlist_head* head = dev_name_hash(net, name);
+	struct netdev_name_node* name_node;
 
-	hlist_for_each_entry(name_node, head, hlist)
-		if (!strcmp(name_node->name, name))
-			return name_node;
+	hlist_for_each_entry(name_node, head, hlist) if (!strcmp(name_node->name, name)) return name_node;
 	return NULL;
 }
 
-static struct netdev_name_node *netdev_name_node_lookup_rcu(struct net *net,
-							    const char *name)
+static struct netdev_name_node* netdev_name_node_lookup_rcu(struct net* net, const char* name)
 {
-	struct hlist_head *head = dev_name_hash(net, name);
-	struct netdev_name_node *name_node;
+	struct hlist_head* head = dev_name_hash(net, name);
+	struct netdev_name_node* name_node;
 
-	hlist_for_each_entry_rcu(name_node, head, hlist)
-		if (!strcmp(name_node->name, name))
-			return name_node;
+	hlist_for_each_entry_rcu(name_node, head, hlist) if (!strcmp(name_node->name, name)) return name_node;
 	return NULL;
 }
 
-int netdev_name_node_alt_create(struct net_device *dev, const char *name)
+int netdev_name_node_alt_create(struct net_device* dev, const char* name)
 {
-	struct netdev_name_node *name_node;
-	struct net *net = dev_net(dev);
+	struct netdev_name_node* name_node;
+	struct net* net = dev_net(dev);
 
 	name_node = netdev_name_node_lookup(net, name);
 	if (name_node)
@@ -322,7 +309,7 @@ int netdev_name_node_alt_create(struct net_device *dev, const char *name)
 }
 EXPORT_SYMBOL(netdev_name_node_alt_create);
 
-static void __netdev_name_node_alt_destroy(struct netdev_name_node *name_node)
+static void __netdev_name_node_alt_destroy(struct netdev_name_node* name_node)
 {
 	list_del(&name_node->list);
 	netdev_name_node_del(name_node);
@@ -330,10 +317,10 @@ static void __netdev_name_node_alt_destroy(struct netdev_name_node *name_node)
 	netdev_name_node_free(name_node);
 }
 
-int netdev_name_node_alt_destroy(struct net_device *dev, const char *name)
+int netdev_name_node_alt_destroy(struct net_device* dev, const char* name)
 {
-	struct netdev_name_node *name_node;
-	struct net *net = dev_net(dev);
+	struct netdev_name_node* name_node;
+	struct net* net = dev_net(dev);
 
 	name_node = netdev_name_node_lookup(net, name);
 	if (!name_node)
@@ -350,26 +337,24 @@ int netdev_name_node_alt_destroy(struct net_device *dev, const char *name)
 }
 EXPORT_SYMBOL(netdev_name_node_alt_destroy);
 
-static void netdev_name_node_alt_flush(struct net_device *dev)
+static void netdev_name_node_alt_flush(struct net_device* dev)
 {
 	struct netdev_name_node *name_node, *tmp;
 
-	list_for_each_entry_safe(name_node, tmp, &dev->name_node->list, list)
-		__netdev_name_node_alt_destroy(name_node);
+	list_for_each_entry_safe(name_node, tmp, &dev->name_node->list, list) __netdev_name_node_alt_destroy(name_node);
 }
 
 /* Device list insertion */
-static void list_netdevice(struct net_device *dev)
+static void list_netdevice(struct net_device* dev)
 {
-	struct net *net = dev_net(dev);
+	struct net* net = dev_net(dev);
 
 	ASSERT_RTNL();
 
 	write_lock_bh(&dev_base_lock);
 	list_add_tail_rcu(&dev->dev_list, &net->dev_base_head);
 	netdev_name_node_add(net, dev->name_node);
-	hlist_add_head_rcu(&dev->index_hlist,
-			   dev_index_hash(net, dev->ifindex));
+	hlist_add_head_rcu(&dev->index_hlist, dev_index_hash(net, dev->ifindex));
 	write_unlock_bh(&dev_base_lock);
 
 	dev_base_seq_inc(net);
@@ -378,7 +363,7 @@ static void list_netdevice(struct net_device *dev)
 /* Device list removal
  * caller must respect a RCU grace period before freeing/reusing dev
  */
-static void unlist_netdevice(struct net_device *dev)
+static void unlist_netdevice(struct net_device* dev)
 {
 	ASSERT_RTNL();
 
@@ -411,39 +396,9 @@ EXPORT_PER_CPU_SYMBOL(softnet_data);
  * register_netdevice() inits txq->_xmit_lock and sets lockdep class
  * according to dev->type
  */
-static const unsigned short netdev_lock_type[] = {
-	 ARPHRD_NETROM, ARPHRD_ETHER, ARPHRD_EETHER, ARPHRD_AX25,
-	 ARPHRD_PRONET, ARPHRD_CHAOS, ARPHRD_IEEE802, ARPHRD_ARCNET,
-	 ARPHRD_APPLETLK, ARPHRD_DLCI, ARPHRD_ATM, ARPHRD_METRICOM,
-	 ARPHRD_IEEE1394, ARPHRD_EUI64, ARPHRD_INFINIBAND, ARPHRD_SLIP,
-	 ARPHRD_CSLIP, ARPHRD_SLIP6, ARPHRD_CSLIP6, ARPHRD_RSRVD,
-	 ARPHRD_ADAPT, ARPHRD_ROSE, ARPHRD_X25, ARPHRD_HWX25,
-	 ARPHRD_PPP, ARPHRD_CISCO, ARPHRD_LAPB, ARPHRD_DDCMP,
-	 ARPHRD_RAWHDLC, ARPHRD_TUNNEL, ARPHRD_TUNNEL6, ARPHRD_FRAD,
-	 ARPHRD_SKIP, ARPHRD_LOOPBACK, ARPHRD_LOCALTLK, ARPHRD_FDDI,
-	 ARPHRD_BIF, ARPHRD_SIT, ARPHRD_IPDDP, ARPHRD_IPGRE,
-	 ARPHRD_PIMREG, ARPHRD_HIPPI, ARPHRD_ASH, ARPHRD_ECONET,
-	 ARPHRD_IRDA, ARPHRD_FCPP, ARPHRD_FCAL, ARPHRD_FCPL,
-	 ARPHRD_FCFABRIC, ARPHRD_IEEE80211, ARPHRD_IEEE80211_PRISM,
-	 ARPHRD_IEEE80211_RADIOTAP, ARPHRD_PHONET, ARPHRD_PHONET_PIPE,
-	 ARPHRD_IEEE802154, ARPHRD_VOID, ARPHRD_NONE};
+static const unsigned short netdev_lock_type[] = {ARPHRD_NETROM, ARPHRD_ETHER, ARPHRD_EETHER, ARPHRD_AX25, ARPHRD_PRONET, ARPHRD_CHAOS, ARPHRD_IEEE802, ARPHRD_ARCNET, ARPHRD_APPLETLK, ARPHRD_DLCI, ARPHRD_ATM, ARPHRD_METRICOM, ARPHRD_IEEE1394, ARPHRD_EUI64, ARPHRD_INFINIBAND, ARPHRD_SLIP, ARPHRD_CSLIP, ARPHRD_SLIP6, ARPHRD_CSLIP6, ARPHRD_RSRVD, ARPHRD_ADAPT, ARPHRD_ROSE, ARPHRD_X25, ARPHRD_HWX25, ARPHRD_PPP, ARPHRD_CISCO, ARPHRD_LAPB, ARPHRD_DDCMP, ARPHRD_RAWHDLC, ARPHRD_TUNNEL, ARPHRD_TUNNEL6, ARPHRD_FRAD, ARPHRD_SKIP, ARPHRD_LOOPBACK, ARPHRD_LOCALTLK, ARPHRD_FDDI, ARPHRD_BIF, ARPHRD_SIT, ARPHRD_IPDDP, ARPHRD_IPGRE, ARPHRD_PIMREG, ARPHRD_HIPPI, ARPHRD_ASH, ARPHRD_ECONET, ARPHRD_IRDA, ARPHRD_FCPP, ARPHRD_FCAL, ARPHRD_FCPL, ARPHRD_FCFABRIC, ARPHRD_IEEE80211, ARPHRD_IEEE80211_PRISM, ARPHRD_IEEE80211_RADIOTAP, ARPHRD_PHONET, ARPHRD_PHONET_PIPE, ARPHRD_IEEE802154, ARPHRD_VOID, ARPHRD_NONE};
 
-static const char *const netdev_lock_name[] = {
-	"_xmit_NETROM", "_xmit_ETHER", "_xmit_EETHER", "_xmit_AX25",
-	"_xmit_PRONET", "_xmit_CHAOS", "_xmit_IEEE802", "_xmit_ARCNET",
-	"_xmit_APPLETLK", "_xmit_DLCI", "_xmit_ATM", "_xmit_METRICOM",
-	"_xmit_IEEE1394", "_xmit_EUI64", "_xmit_INFINIBAND", "_xmit_SLIP",
-	"_xmit_CSLIP", "_xmit_SLIP6", "_xmit_CSLIP6", "_xmit_RSRVD",
-	"_xmit_ADAPT", "_xmit_ROSE", "_xmit_X25", "_xmit_HWX25",
-	"_xmit_PPP", "_xmit_CISCO", "_xmit_LAPB", "_xmit_DDCMP",
-	"_xmit_RAWHDLC", "_xmit_TUNNEL", "_xmit_TUNNEL6", "_xmit_FRAD",
-	"_xmit_SKIP", "_xmit_LOOPBACK", "_xmit_LOCALTLK", "_xmit_FDDI",
-	"_xmit_BIF", "_xmit_SIT", "_xmit_IPDDP", "_xmit_IPGRE",
-	"_xmit_PIMREG", "_xmit_HIPPI", "_xmit_ASH", "_xmit_ECONET",
-	"_xmit_IRDA", "_xmit_FCPP", "_xmit_FCAL", "_xmit_FCPL",
-	"_xmit_FCFABRIC", "_xmit_IEEE80211", "_xmit_IEEE80211_PRISM",
-	"_xmit_IEEE80211_RADIOTAP", "_xmit_PHONET", "_xmit_PHONET_PIPE",
-	"_xmit_IEEE802154", "_xmit_VOID", "_xmit_NONE"};
+static const char* const netdev_lock_name[] = {"_xmit_NETROM", "_xmit_ETHER", "_xmit_EETHER", "_xmit_AX25", "_xmit_PRONET", "_xmit_CHAOS", "_xmit_IEEE802", "_xmit_ARCNET", "_xmit_APPLETLK", "_xmit_DLCI", "_xmit_ATM", "_xmit_METRICOM", "_xmit_IEEE1394", "_xmit_EUI64", "_xmit_INFINIBAND", "_xmit_SLIP", "_xmit_CSLIP", "_xmit_SLIP6", "_xmit_CSLIP6", "_xmit_RSRVD", "_xmit_ADAPT", "_xmit_ROSE", "_xmit_X25", "_xmit_HWX25", "_xmit_PPP", "_xmit_CISCO", "_xmit_LAPB", "_xmit_DDCMP", "_xmit_RAWHDLC", "_xmit_TUNNEL", "_xmit_TUNNEL6", "_xmit_FRAD", "_xmit_SKIP", "_xmit_LOOPBACK", "_xmit_LOCALTLK", "_xmit_FDDI", "_xmit_BIF", "_xmit_SIT", "_xmit_IPDDP", "_xmit_IPGRE", "_xmit_PIMREG", "_xmit_HIPPI", "_xmit_ASH", "_xmit_ECONET", "_xmit_IRDA", "_xmit_FCPP", "_xmit_FCAL", "_xmit_FCPL", "_xmit_FCFABRIC", "_xmit_IEEE80211", "_xmit_IEEE80211_PRISM", "_xmit_IEEE80211_RADIOTAP", "_xmit_PHONET", "_xmit_PHONET_PIPE", "_xmit_IEEE802154", "_xmit_VOID", "_xmit_NONE"};
 
 static struct lock_class_key netdev_xmit_lock_key[ARRAY_SIZE(netdev_lock_type)];
 static struct lock_class_key netdev_addr_lock_key[ARRAY_SIZE(netdev_lock_type)];
@@ -459,32 +414,27 @@ static inline unsigned short netdev_lock_pos(unsigned short dev_type)
 	return ARRAY_SIZE(netdev_lock_type) - 1;
 }
 
-static inline void netdev_set_xmit_lockdep_class(spinlock_t *lock,
-						 unsigned short dev_type)
+static inline void netdev_set_xmit_lockdep_class(spinlock_t* lock, unsigned short dev_type)
 {
 	int i;
 
 	i = netdev_lock_pos(dev_type);
-	lockdep_set_class_and_name(lock, &netdev_xmit_lock_key[i],
-				   netdev_lock_name[i]);
+	lockdep_set_class_and_name(lock, &netdev_xmit_lock_key[i], netdev_lock_name[i]);
 }
 
-static inline void netdev_set_addr_lockdep_class(struct net_device *dev)
+static inline void netdev_set_addr_lockdep_class(struct net_device* dev)
 {
 	int i;
 
 	i = netdev_lock_pos(dev->type);
-	lockdep_set_class_and_name(&dev->addr_list_lock,
-				   &netdev_addr_lock_key[i],
-				   netdev_lock_name[i]);
+	lockdep_set_class_and_name(&dev->addr_list_lock, &netdev_addr_lock_key[i], netdev_lock_name[i]);
 }
 #else
-static inline void netdev_set_xmit_lockdep_class(spinlock_t *lock,
-						 unsigned short dev_type)
+static inline void netdev_set_xmit_lockdep_class(spinlock_t* lock, unsigned short dev_type)
 {
 }
 
-static inline void netdev_set_addr_lockdep_class(struct net_device *dev)
+static inline void netdev_set_addr_lockdep_class(struct net_device* dev)
 {
 }
 #endif
@@ -494,7 +444,6 @@ static inline void netdev_set_addr_lockdep_class(struct net_device *dev)
  *		Protocol management and registration routines
  *
  *******************************************************************************/
-
 
 /*
  *	Add a protocol ID to the list. Now that the input handler is
@@ -512,13 +461,12 @@ static inline void netdev_set_addr_lockdep_class(struct net_device *dev)
  *							--ANK (980803)
  */
 
-static inline struct list_head *ptype_head(const struct packet_type *pt)
+static inline struct list_head* ptype_head(const struct packet_type* pt)
 {
 	if (pt->type == htons(ETH_P_ALL))
 		return pt->dev ? &pt->dev->ptype_all : &ptype_all;
 	else
-		return pt->dev ? &pt->dev->ptype_specific :
-				 &ptype_base[ntohs(pt->type) & PTYPE_HASH_MASK];
+		return pt->dev ? &pt->dev->ptype_specific : &ptype_base[ntohs(pt->type) & PTYPE_HASH_MASK];
 }
 
 /**
@@ -534,9 +482,9 @@ static inline struct list_head *ptype_head(const struct packet_type *pt)
  *	will see the new packet type (until the next received packet).
  */
 
-void dev_add_pack(struct packet_type *pt)
+void dev_add_pack(struct packet_type* pt)
 {
-	struct list_head *head = ptype_head(pt);
+	struct list_head* head = ptype_head(pt);
 
 	spin_lock(&ptype_lock);
 	list_add_rcu(&pt->list, head);
@@ -557,15 +505,17 @@ EXPORT_SYMBOL(dev_add_pack);
  *	and must not be freed until after all the CPU's have gone
  *	through a quiescent state.
  */
-void __dev_remove_pack(struct packet_type *pt)
+void __dev_remove_pack(struct packet_type* pt)
 {
-	struct list_head *head = ptype_head(pt);
-	struct packet_type *pt1;
+	struct list_head* head = ptype_head(pt);
+	struct packet_type* pt1;
 
 	spin_lock(&ptype_lock);
 
-	list_for_each_entry(pt1, head, list) {
-		if (pt == pt1) {
+	list_for_each_entry(pt1, head, list)
+	{
+		if (pt == pt1)
+		{
 			list_del_rcu(&pt->list);
 			goto out;
 		}
@@ -589,14 +539,13 @@ EXPORT_SYMBOL(__dev_remove_pack);
  *	This call sleeps to guarantee that no CPU is looking at the packet
  *	type after return.
  */
-void dev_remove_pack(struct packet_type *pt)
+void dev_remove_pack(struct packet_type* pt)
 {
 	__dev_remove_pack(pt);
 
 	synchronize_net();
 }
 EXPORT_SYMBOL(dev_remove_pack);
-
 
 /**
  *	dev_add_offload - register offload handlers
@@ -610,12 +559,13 @@ EXPORT_SYMBOL(dev_remove_pack);
  *	guarantee all CPU's that are in middle of receiving packets
  *	will see the new offload handlers (until the next received packet).
  */
-void dev_add_offload(struct packet_offload *po)
+void dev_add_offload(struct packet_offload* po)
 {
-	struct packet_offload *elem;
+	struct packet_offload* elem;
 
 	spin_lock(&offload_lock);
-	list_for_each_entry(elem, &offload_base, list) {
+	list_for_each_entry(elem, &offload_base, list)
+	{
 		if (po->priority < elem->priority)
 			break;
 	}
@@ -637,15 +587,17 @@ EXPORT_SYMBOL(dev_add_offload);
  *	and must not be freed until after all the CPU's have gone
  *	through a quiescent state.
  */
-static void __dev_remove_offload(struct packet_offload *po)
+static void __dev_remove_offload(struct packet_offload* po)
 {
-	struct list_head *head = &offload_base;
-	struct packet_offload *po1;
+	struct list_head* head = &offload_base;
+	struct packet_offload* po1;
 
 	spin_lock(&offload_lock);
 
-	list_for_each_entry(po1, head, list) {
-		if (po == po1) {
+	list_for_each_entry(po1, head, list)
+	{
+		if (po == po1)
+		{
 			list_del_rcu(&po->list);
 			goto out;
 		}
@@ -668,7 +620,7 @@ out:
  *	This call sleeps to guarantee that no CPU is looking at the packet
  *	type after return.
  */
-void dev_remove_offload(struct packet_offload *po)
+void dev_remove_offload(struct packet_offload* po)
 {
 	__dev_remove_offload(po);
 
@@ -690,7 +642,7 @@ EXPORT_SYMBOL(dev_remove_offload);
  *	Physical interfaces have the same 'ifindex' and 'iflink' values.
  */
 
-int dev_get_iflink(const struct net_device *dev)
+int dev_get_iflink(const struct net_device* dev)
 {
 	if (dev->netdev_ops && dev->netdev_ops->ndo_get_iflink)
 		return dev->netdev_ops->ndo_get_iflink(dev);
@@ -708,11 +660,11 @@ EXPORT_SYMBOL(dev_get_iflink);
  *	egress tunnel information for a packet. Following API allows
  *	user to get this info.
  */
-int dev_fill_metadata_dst(struct net_device *dev, struct sk_buff *skb)
+int dev_fill_metadata_dst(struct net_device* dev, struct sk_buff* skb)
 {
-	struct ip_tunnel_info *info;
+	struct ip_tunnel_info* info;
 
-	if (!dev->netdev_ops  || !dev->netdev_ops->ndo_fill_metadata_dst)
+	if (!dev->netdev_ops || !dev->netdev_ops->ndo_fill_metadata_dst)
 		return -EINVAL;
 
 	info = skb_tunnel_info_unclone(skb);
@@ -725,7 +677,7 @@ int dev_fill_metadata_dst(struct net_device *dev, struct sk_buff *skb)
 }
 EXPORT_SYMBOL_GPL(dev_fill_metadata_dst);
 
-static struct net_device_path *dev_fwd_path(struct net_device_path_stack *stack)
+static struct net_device_path* dev_fwd_path(struct net_device_path_stack* stack)
 {
 	int k = stack->num_paths++;
 
@@ -735,19 +687,19 @@ static struct net_device_path *dev_fwd_path(struct net_device_path_stack *stack)
 	return &stack->path[k];
 }
 
-int dev_fill_forward_path(const struct net_device *dev, const u8 *daddr,
-			  struct net_device_path_stack *stack)
+int dev_fill_forward_path(const struct net_device* dev, const u8* daddr, struct net_device_path_stack* stack)
 {
-	const struct net_device *last_dev;
+	const struct net_device* last_dev;
 	struct net_device_path_ctx ctx = {
-		.dev	= dev,
-		.daddr	= daddr,
+		.dev = dev,
+		.daddr = daddr,
 	};
-	struct net_device_path *path;
+	struct net_device_path* path;
 	int ret = 0;
 
 	stack->num_paths = 0;
-	while (ctx.dev && ctx.dev->netdev_ops->ndo_fill_forward_path) {
+	while (ctx.dev && ctx.dev->netdev_ops->ndo_fill_forward_path)
+	{
 		last_dev = ctx.dev;
 		path = dev_fwd_path(stack);
 		if (!path)
@@ -783,9 +735,9 @@ EXPORT_SYMBOL_GPL(dev_fill_forward_path);
  *	careful with locks.
  */
 
-struct net_device *__dev_get_by_name(struct net *net, const char *name)
+struct net_device* __dev_get_by_name(struct net* net, const char* name)
 {
-	struct netdev_name_node *node_name;
+	struct netdev_name_node* node_name;
 
 	node_name = netdev_name_node_lookup(net, name);
 	return node_name ? node_name->dev : NULL;
@@ -804,9 +756,9 @@ EXPORT_SYMBOL(__dev_get_by_name);
  * careful with locks. The caller must hold RCU lock.
  */
 
-struct net_device *dev_get_by_name_rcu(struct net *net, const char *name)
+struct net_device* dev_get_by_name_rcu(struct net* net, const char* name)
 {
-	struct netdev_name_node *node_name;
+	struct netdev_name_node* node_name;
 
 	node_name = netdev_name_node_lookup_rcu(net, name);
 	return node_name ? node_name->dev : NULL;
@@ -825,9 +777,9 @@ EXPORT_SYMBOL(dev_get_by_name_rcu);
  *	matching device is found.
  */
 
-struct net_device *dev_get_by_name(struct net *net, const char *name)
+struct net_device* dev_get_by_name(struct net* net, const char* name)
 {
-	struct net_device *dev;
+	struct net_device* dev;
 
 	rcu_read_lock();
 	dev = dev_get_by_name_rcu(net, name);
@@ -849,14 +801,12 @@ EXPORT_SYMBOL(dev_get_by_name);
  *	or @dev_base_lock.
  */
 
-struct net_device *__dev_get_by_index(struct net *net, int ifindex)
+struct net_device* __dev_get_by_index(struct net* net, int ifindex)
 {
-	struct net_device *dev;
-	struct hlist_head *head = dev_index_hash(net, ifindex);
+	struct net_device* dev;
+	struct hlist_head* head = dev_index_hash(net, ifindex);
 
-	hlist_for_each_entry(dev, head, index_hlist)
-		if (dev->ifindex == ifindex)
-			return dev;
+	hlist_for_each_entry(dev, head, index_hlist) if (dev->ifindex == ifindex) return dev;
 
 	return NULL;
 }
@@ -873,19 +823,16 @@ EXPORT_SYMBOL(__dev_get_by_index);
  *	about locking. The caller must hold RCU lock.
  */
 
-struct net_device *dev_get_by_index_rcu(struct net *net, int ifindex)
+struct net_device* dev_get_by_index_rcu(struct net* net, int ifindex)
 {
-	struct net_device *dev;
-	struct hlist_head *head = dev_index_hash(net, ifindex);
+	struct net_device* dev;
+	struct hlist_head* head = dev_index_hash(net, ifindex);
 
-	hlist_for_each_entry_rcu(dev, head, index_hlist)
-		if (dev->ifindex == ifindex)
-			return dev;
+	hlist_for_each_entry_rcu(dev, head, index_hlist) if (dev->ifindex == ifindex) return dev;
 
 	return NULL;
 }
 EXPORT_SYMBOL(dev_get_by_index_rcu);
-
 
 /**
  *	dev_get_by_index - find a device by its ifindex
@@ -898,9 +845,9 @@ EXPORT_SYMBOL(dev_get_by_index_rcu);
  *	dev_put to indicate they have finished with it.
  */
 
-struct net_device *dev_get_by_index(struct net *net, int ifindex)
+struct net_device* dev_get_by_index(struct net* net, int ifindex)
 {
-	struct net_device *dev;
+	struct net_device* dev;
 
 	rcu_read_lock();
 	dev = dev_get_by_index_rcu(net, ifindex);
@@ -920,9 +867,9 @@ EXPORT_SYMBOL(dev_get_by_index);
  *	about locking. The caller must hold RCU lock.
  */
 
-struct net_device *dev_get_by_napi_id(unsigned int napi_id)
+struct net_device* dev_get_by_napi_id(unsigned int napi_id)
 {
-	struct napi_struct *napi;
+	struct napi_struct* napi;
 
 	WARN_ON_ONCE(!rcu_read_lock_held());
 
@@ -941,16 +888,17 @@ EXPORT_SYMBOL(dev_get_by_napi_id);
  *	@name: a pointer to the buffer where the name will be stored.
  *	@ifindex: the ifindex of the interface to get the name from.
  */
-int netdev_get_name(struct net *net, char *name, int ifindex)
+int netdev_get_name(struct net* net, char* name, int ifindex)
 {
-	struct net_device *dev;
+	struct net_device* dev;
 	int ret;
 
 	down_read(&devnet_rename_sem);
 	rcu_read_lock();
 
 	dev = dev_get_by_index_rcu(net, ifindex);
-	if (!dev) {
+	if (!dev)
+	{
 		ret = -ENODEV;
 		goto out;
 	}
@@ -978,31 +926,27 @@ out:
  *
  */
 
-struct net_device *dev_getbyhwaddr_rcu(struct net *net, unsigned short type,
-				       const char *ha)
+struct net_device* dev_getbyhwaddr_rcu(struct net* net, unsigned short type, const char* ha)
 {
-	struct net_device *dev;
+	struct net_device* dev;
 
-	for_each_netdev_rcu(net, dev)
-		if (dev->type == type &&
-		    !memcmp(dev->dev_addr, ha, dev->addr_len))
-			return dev;
+	for_each_netdev_rcu(net, dev) if (dev->type == type && !memcmp(dev->dev_addr, ha, dev->addr_len)) return dev;
 
 	return NULL;
 }
 EXPORT_SYMBOL(dev_getbyhwaddr_rcu);
 
-struct net_device *dev_getfirstbyhwtype(struct net *net, unsigned short type)
+struct net_device* dev_getfirstbyhwtype(struct net* net, unsigned short type)
 {
 	struct net_device *dev, *ret = NULL;
 
 	rcu_read_lock();
-	for_each_netdev_rcu(net, dev)
-		if (dev->type == type) {
-			dev_hold(dev);
-			ret = dev;
-			break;
-		}
+	for_each_netdev_rcu(net, dev) if (dev->type == type)
+	{
+		dev_hold(dev);
+		ret = dev;
+		break;
+	}
 	rcu_read_unlock();
 	return ret;
 }
@@ -1019,16 +963,17 @@ EXPORT_SYMBOL(dev_getfirstbyhwtype);
  *	rtnl_lock(), and result refcount is unchanged.
  */
 
-struct net_device *__dev_get_by_flags(struct net *net, unsigned short if_flags,
-				      unsigned short mask)
+struct net_device* __dev_get_by_flags(struct net* net, unsigned short if_flags, unsigned short mask)
 {
 	struct net_device *dev, *ret;
 
 	ASSERT_RTNL();
 
 	ret = NULL;
-	for_each_netdev(net, dev) {
-		if (((dev->flags ^ if_flags) & mask) == 0) {
+	for_each_netdev(net, dev)
+	{
+		if (((dev->flags ^ if_flags) & mask) == 0)
+		{
 			ret = dev;
 			break;
 		}
@@ -1045,7 +990,7 @@ EXPORT_SYMBOL(__dev_get_by_flags);
  *	allow sysfs to work.  We also disallow any kind of
  *	whitespace.
  */
-bool dev_valid_name(const char *name)
+bool dev_valid_name(const char* name)
 {
 	if (*name == '\0')
 		return false;
@@ -1054,7 +999,8 @@ bool dev_valid_name(const char *name)
 	if (!strcmp(name, ".") || !strcmp(name, ".."))
 		return false;
 
-	while (*name) {
+	while (*name)
+	{
 		if (*name == '/' || *name == ':' || isspace(*name))
 			return false;
 		name++;
@@ -1078,19 +1024,20 @@ EXPORT_SYMBOL(dev_valid_name);
  *	Returns the number of the unit assigned or a negative errno code.
  */
 
-static int __dev_alloc_name(struct net *net, const char *name, char *buf)
+static int __dev_alloc_name(struct net* net, const char* name, char* buf)
 {
 	int i = 0;
-	const char *p;
-	const int max_netdevices = 8*PAGE_SIZE;
-	unsigned long *inuse;
-	struct net_device *d;
+	const char* p;
+	const int max_netdevices = 8 * PAGE_SIZE;
+	unsigned long* inuse;
+	struct net_device* d;
 
 	if (!dev_valid_name(name))
 		return -EINVAL;
 
 	p = strchr(name, '%');
-	if (p) {
+	if (p)
+	{
 		/*
 		 * Verify the string as this thing may have come from
 		 * the user.  There must be either one "%d" and no other "%"
@@ -1100,13 +1047,15 @@ static int __dev_alloc_name(struct net *net, const char *name, char *buf)
 			return -EINVAL;
 
 		/* Use one page as a bit array of possible slots */
-		inuse = (unsigned long *) get_zeroed_page(GFP_ATOMIC);
+		inuse = (unsigned long*)get_zeroed_page(GFP_ATOMIC);
 		if (!inuse)
 			return -ENOMEM;
 
-		for_each_netdev(net, d) {
-			struct netdev_name_node *name_node;
-			list_for_each_entry(name_node, &d->name_node->list, list) {
+		for_each_netdev(net, d)
+		{
+			struct netdev_name_node* name_node;
+			list_for_each_entry(name_node, &d->name_node->list, list)
+			{
 				if (!sscanf(name_node->name, name, &i))
 					continue;
 				if (i < 0 || i >= max_netdevices)
@@ -1129,7 +1078,7 @@ static int __dev_alloc_name(struct net *net, const char *name, char *buf)
 		}
 
 		i = find_first_zero_bit(inuse, max_netdevices);
-		free_page((unsigned long) inuse);
+		free_page((unsigned long)inuse);
 	}
 
 	snprintf(buf, IFNAMSIZ, name, i);
@@ -1143,9 +1092,7 @@ static int __dev_alloc_name(struct net *net, const char *name, char *buf)
 	return -ENFILE;
 }
 
-static int dev_alloc_name_ns(struct net *net,
-			     struct net_device *dev,
-			     const char *name)
+static int dev_alloc_name_ns(struct net* net, struct net_device* dev, const char* name)
 {
 	char buf[IFNAMSIZ];
 	int ret;
@@ -1171,14 +1118,13 @@ static int dev_alloc_name_ns(struct net *net,
  *	Returns the number of the unit assigned or a negative errno code.
  */
 
-int dev_alloc_name(struct net_device *dev, const char *name)
+int dev_alloc_name(struct net_device* dev, const char* name)
 {
 	return dev_alloc_name_ns(dev_net(dev), dev, name);
 }
 EXPORT_SYMBOL(dev_alloc_name);
 
-static int dev_get_valid_name(struct net *net, struct net_device *dev,
-			      const char *name)
+static int dev_get_valid_name(struct net* net, struct net_device* dev, const char* name)
 {
 	BUG_ON(!net);
 
@@ -1203,13 +1149,13 @@ static int dev_get_valid_name(struct net *net, struct net_device *dev,
  *	Change name of a device, can pass format strings "eth%d".
  *	for wildcarding.
  */
-int dev_change_name(struct net_device *dev, const char *newname)
+int dev_change_name(struct net_device* dev, const char* newname)
 {
 	unsigned char old_assign_type;
 	char oldname[IFNAMSIZ];
 	int err = 0;
 	int ret;
-	struct net *net;
+	struct net* net;
 
 	ASSERT_RTNL();
 	BUG_ON(!dev_net(dev));
@@ -1228,13 +1174,13 @@ int dev_change_name(struct net_device *dev, const char *newname)
 	 * they are supposed to operate on master interface
 	 * directly.
 	 */
-	if (dev->flags & IFF_UP &&
-	    likely(!(dev->priv_flags & IFF_LIVE_RENAME_OK)))
+	if (dev->flags & IFF_UP && likely(!(dev->priv_flags & IFF_LIVE_RENAME_OK)))
 		return -EBUSY;
 
 	down_write(&devnet_rename_sem);
 
-	if (strncmp(newname, dev->name, IFNAMSIZ) == 0) {
+	if (strncmp(newname, dev->name, IFNAMSIZ) == 0)
+	{
 		up_write(&devnet_rename_sem);
 		return 0;
 	}
@@ -1242,7 +1188,8 @@ int dev_change_name(struct net_device *dev, const char *newname)
 	memcpy(oldname, dev->name, IFNAMSIZ);
 
 	err = dev_get_valid_name(net, dev, newname);
-	if (err < 0) {
+	if (err < 0)
+	{
 		up_write(&devnet_rename_sem);
 		return err;
 	}
@@ -1255,7 +1202,8 @@ int dev_change_name(struct net_device *dev, const char *newname)
 
 rollback:
 	ret = device_rename(&dev->dev, dev->name);
-	if (ret) {
+	if (ret)
+	{
 		memcpy(dev->name, oldname, IFNAMSIZ);
 		dev->name_assign_type = old_assign_type;
 		up_write(&devnet_rename_sem);
@@ -1279,9 +1227,11 @@ rollback:
 	ret = call_netdevice_notifiers(NETDEV_CHANGENAME, dev);
 	ret = notifier_to_errno(ret);
 
-	if (ret) {
+	if (ret)
+	{
 		/* err >= 0 after dev_alloc_name() or stores the first errno */
-		if (err >= 0) {
+		if (err >= 0)
+		{
 			err = ret;
 			down_write(&devnet_rename_sem);
 			memcpy(dev->name, oldname, IFNAMSIZ);
@@ -1289,9 +1239,10 @@ rollback:
 			dev->name_assign_type = old_assign_type;
 			old_assign_type = NET_NAME_RENAMED;
 			goto rollback;
-		} else {
-			pr_err("%s: name change rollback failed: %d\n",
-			       dev->name, ret);
+		}
+		else
+		{
+			pr_err("%s: name change rollback failed: %d\n", dev->name, ret);
 		}
 	}
 
@@ -1306,14 +1257,15 @@ rollback:
  *
  *	Set ifalias for a device,
  */
-int dev_set_alias(struct net_device *dev, const char *alias, size_t len)
+int dev_set_alias(struct net_device* dev, const char* alias, size_t len)
 {
-	struct dev_ifalias *new_alias = NULL;
+	struct dev_ifalias* new_alias = NULL;
 
 	if (len >= IFALIASZ)
 		return -EINVAL;
 
-	if (len) {
+	if (len)
+	{
 		new_alias = kmalloc(sizeof(*new_alias) + len + 1, GFP_KERNEL);
 		if (!new_alias)
 			return -ENOMEM;
@@ -1323,8 +1275,7 @@ int dev_set_alias(struct net_device *dev, const char *alias, size_t len)
 	}
 
 	mutex_lock(&ifalias_mutex);
-	new_alias = rcu_replace_pointer(dev->ifalias, new_alias,
-					mutex_is_locked(&ifalias_mutex));
+	new_alias = rcu_replace_pointer(dev->ifalias, new_alias, mutex_is_locked(&ifalias_mutex));
 	mutex_unlock(&ifalias_mutex);
 
 	if (new_alias)
@@ -1343,9 +1294,9 @@ EXPORT_SYMBOL(dev_set_alias);
  *	get ifalias for a device.  Caller must make sure dev cannot go
  *	away,  e.g. rcu read lock or own a reference count to device.
  */
-int dev_get_alias(const struct net_device *dev, char *name, size_t len)
+int dev_get_alias(const struct net_device* dev, char* name, size_t len)
 {
-	const struct dev_ifalias *alias;
+	const struct dev_ifalias* alias;
 	int ret = 0;
 
 	rcu_read_lock();
@@ -1363,7 +1314,7 @@ int dev_get_alias(const struct net_device *dev, char *name, size_t len)
  *
  *	Called to indicate a device has changed features.
  */
-void netdev_features_change(struct net_device *dev)
+void netdev_features_change(struct net_device* dev)
 {
 	call_netdevice_notifiers(NETDEV_FEAT_CHANGE, dev);
 }
@@ -1377,15 +1328,15 @@ EXPORT_SYMBOL(netdev_features_change);
  *	the notifier chains for netdev_chain and sends a NEWLINK message
  *	to the routing socket.
  */
-void netdev_state_change(struct net_device *dev)
+void netdev_state_change(struct net_device* dev)
 {
-	if (dev->flags & IFF_UP) {
+	if (dev->flags & IFF_UP)
+	{
 		struct netdev_notifier_change_info change_info = {
 			.info.dev = dev,
 		};
 
-		call_netdevice_notifiers_info(NETDEV_CHANGE,
-					      &change_info.info);
+		call_netdevice_notifiers_info(NETDEV_CHANGE, &change_info.info);
 		rtmsg_ifinfo(RTM_NEWLINK, dev, 0, GFP_KERNEL);
 	}
 }
@@ -1402,7 +1353,7 @@ EXPORT_SYMBOL(netdev_state_change);
  * reconfiguration such as a failover event or virtual machine
  * migration.
  */
-void __netdev_notify_peers(struct net_device *dev)
+void __netdev_notify_peers(struct net_device* dev)
 {
 	ASSERT_RTNL();
 	call_netdevice_notifiers(NETDEV_NOTIFY_PEERS, dev);
@@ -1420,7 +1371,7 @@ EXPORT_SYMBOL(__netdev_notify_peers);
  * reconfiguration such as a failover event or virtual machine
  * migration.
  */
-void netdev_notify_peers(struct net_device *dev)
+void netdev_notify_peers(struct net_device* dev)
 {
 	rtnl_lock();
 	__netdev_notify_peers(dev);
@@ -1428,9 +1379,9 @@ void netdev_notify_peers(struct net_device *dev)
 }
 EXPORT_SYMBOL(netdev_notify_peers);
 
-static int napi_threaded_poll(void *data);
+static int napi_threaded_poll(void* data);
 
-static int napi_kthread_create(struct napi_struct *n)
+static int napi_kthread_create(struct napi_struct* n)
 {
 	int err = 0;
 
@@ -1438,9 +1389,9 @@ static int napi_kthread_create(struct napi_struct *n)
 	 * TASK_INTERRUPTIBLE mode to avoid the blocked task
 	 * warning and work with loadavg.
 	 */
-	n->thread = kthread_run(napi_threaded_poll, n, "napi/%s-%d",
-				n->dev->name, n->napi_id);
-	if (IS_ERR(n->thread)) {
+	n->thread = kthread_run(napi_threaded_poll, n, "napi/%s-%d", n->dev->name, n->napi_id);
+	if (IS_ERR(n->thread))
+	{
 		err = PTR_ERR(n->thread);
 		pr_err("kthread_run failed with err %d\n", err);
 		n->thread = NULL;
@@ -1449,14 +1400,15 @@ static int napi_kthread_create(struct napi_struct *n)
 	return err;
 }
 
-static int __dev_open(struct net_device *dev, struct netlink_ext_ack *extack)
+static int __dev_open(struct net_device* dev, struct netlink_ext_ack* extack)
 {
-	const struct net_device_ops *ops = dev->netdev_ops;
+	const struct net_device_ops* ops = dev->netdev_ops;
 	int ret;
 
 	ASSERT_RTNL();
 
-	if (!netif_device_present(dev)) {
+	if (!netif_device_present(dev))
+	{
 		/* may be detached because parent is runtime-suspended */
 		if (dev->dev.parent)
 			pm_runtime_resume(dev->dev.parent);
@@ -1487,7 +1439,8 @@ static int __dev_open(struct net_device *dev, struct netlink_ext_ack *extack)
 
 	if (ret)
 		clear_bit(__LINK_STATE_START, &dev->state);
-	else {
+	else
+	{
 		dev->flags |= IFF_UP;
 		dev_set_rx_mode(dev);
 		dev_activate(dev);
@@ -1510,7 +1463,7 @@ static int __dev_open(struct net_device *dev, struct netlink_ext_ack *extack)
  *	Calling this function on an active interface is a nop. On a failure
  *	a negative errno code is returned.
  */
-int dev_open(struct net_device *dev, struct netlink_ext_ack *extack)
+int dev_open(struct net_device* dev, struct netlink_ext_ack* extack)
 {
 	int ret;
 
@@ -1521,21 +1474,22 @@ int dev_open(struct net_device *dev, struct netlink_ext_ack *extack)
 	if (ret < 0)
 		return ret;
 
-	rtmsg_ifinfo(RTM_NEWLINK, dev, IFF_UP|IFF_RUNNING, GFP_KERNEL);
+	rtmsg_ifinfo(RTM_NEWLINK, dev, IFF_UP | IFF_RUNNING, GFP_KERNEL);
 	call_netdevice_notifiers(NETDEV_UP, dev);
 
 	return ret;
 }
 EXPORT_SYMBOL(dev_open);
 
-static void __dev_close_many(struct list_head *head)
+static void __dev_close_many(struct list_head* head)
 {
-	struct net_device *dev;
+	struct net_device* dev;
 
 	ASSERT_RTNL();
 	might_sleep();
 
-	list_for_each_entry(dev, head, close_list) {
+	list_for_each_entry(dev, head, close_list)
+	{
 		/* Temporarily disable netpoll until the interface is down */
 		netpoll_poll_disable(dev);
 
@@ -1554,8 +1508,9 @@ static void __dev_close_many(struct list_head *head)
 
 	dev_deactivate_many(head);
 
-	list_for_each_entry(dev, head, close_list) {
-		const struct net_device_ops *ops = dev->netdev_ops;
+	list_for_each_entry(dev, head, close_list)
+	{
+		const struct net_device_ops* ops = dev->netdev_ops;
 
 		/*
 		 *	Call the device specific close. This cannot fail.
@@ -1572,7 +1527,7 @@ static void __dev_close_many(struct list_head *head)
 	}
 }
 
-static void __dev_close(struct net_device *dev)
+static void __dev_close(struct net_device* dev)
 {
 	LIST_HEAD(single);
 
@@ -1581,19 +1536,18 @@ static void __dev_close(struct net_device *dev)
 	list_del(&single);
 }
 
-void dev_close_many(struct list_head *head, bool unlink)
+void dev_close_many(struct list_head* head, bool unlink)
 {
 	struct net_device *dev, *tmp;
 
 	/* Remove the devices that don't need to be closed */
-	list_for_each_entry_safe(dev, tmp, head, close_list)
-		if (!(dev->flags & IFF_UP))
-			list_del_init(&dev->close_list);
+	list_for_each_entry_safe(dev, tmp, head, close_list) if (!(dev->flags & IFF_UP)) list_del_init(&dev->close_list);
 
 	__dev_close_many(head);
 
-	list_for_each_entry_safe(dev, tmp, head, close_list) {
-		rtmsg_ifinfo(RTM_NEWLINK, dev, IFF_UP|IFF_RUNNING, GFP_KERNEL);
+	list_for_each_entry_safe(dev, tmp, head, close_list)
+	{
+		rtmsg_ifinfo(RTM_NEWLINK, dev, IFF_UP | IFF_RUNNING, GFP_KERNEL);
 		call_netdevice_notifiers(NETDEV_DOWN, dev);
 		if (unlink)
 			list_del_init(&dev->close_list);
@@ -1610,9 +1564,10 @@ EXPORT_SYMBOL(dev_close_many);
  *	is then deactivated and finally a %NETDEV_DOWN is sent to the notifier
  *	chain.
  */
-void dev_close(struct net_device *dev)
+void dev_close(struct net_device* dev)
 {
-	if (dev->flags & IFF_UP) {
+	if (dev->flags & IFF_UP)
+	{
 		LIST_HEAD(single);
 
 		list_add(&dev->close_list, &single);
@@ -1622,7 +1577,6 @@ void dev_close(struct net_device *dev)
 }
 EXPORT_SYMBOL(dev_close);
 
-
 /**
  *	dev_disable_lro - disable Large Receive Offload on a device
  *	@dev: device
@@ -1631,10 +1585,10 @@ EXPORT_SYMBOL(dev_close);
  *	called under RTNL.  This is needed if received packets may be
  *	forwarded to another interface.
  */
-void dev_disable_lro(struct net_device *dev)
+void dev_disable_lro(struct net_device* dev)
 {
-	struct net_device *lower_dev;
-	struct list_head *iter;
+	struct net_device* lower_dev;
+	struct list_head* iter;
 
 	dev->wanted_features &= ~NETIF_F_LRO;
 	netdev_update_features(dev);
@@ -1642,8 +1596,7 @@ void dev_disable_lro(struct net_device *dev)
 	if (unlikely(dev->features & NETIF_F_LRO))
 		netdev_WARN(dev, "failed to disable LRO!\n");
 
-	netdev_for_each_lower_dev(dev, lower_dev, iter)
-		dev_disable_lro(lower_dev);
+	netdev_for_each_lower_dev(dev, lower_dev, iter) dev_disable_lro(lower_dev);
 }
 EXPORT_SYMBOL(dev_disable_lro);
 
@@ -1655,7 +1608,7 @@ EXPORT_SYMBOL(dev_disable_lro);
  *	called under RTNL.  This is needed if Generic XDP is installed on
  *	the device.
  */
-static void dev_disable_gro_hw(struct net_device *dev)
+static void dev_disable_gro_hw(struct net_device* dev)
 {
 	dev->wanted_features &= ~NETIF_F_GRO_HW;
 	netdev_update_features(dev);
@@ -1664,30 +1617,21 @@ static void dev_disable_gro_hw(struct net_device *dev)
 		netdev_WARN(dev, "failed to disable GRO_HW!\n");
 }
 
-const char *netdev_cmd_to_name(enum netdev_cmd cmd)
+const char* netdev_cmd_to_name(enum netdev_cmd cmd)
 {
-#define N(val) 						\
-	case NETDEV_##val:				\
+#define N(val)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 \
+	case NETDEV_##val:                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         \
 		return "NETDEV_" __stringify(val);
-	switch (cmd) {
-	N(UP) N(DOWN) N(REBOOT) N(CHANGE) N(REGISTER) N(UNREGISTER)
-	N(CHANGEMTU) N(CHANGEADDR) N(GOING_DOWN) N(CHANGENAME) N(FEAT_CHANGE)
-	N(BONDING_FAILOVER) N(PRE_UP) N(PRE_TYPE_CHANGE) N(POST_TYPE_CHANGE)
-	N(POST_INIT) N(RELEASE) N(NOTIFY_PEERS) N(JOIN) N(CHANGEUPPER)
-	N(RESEND_IGMP) N(PRECHANGEMTU) N(CHANGEINFODATA) N(BONDING_INFO)
-	N(PRECHANGEUPPER) N(CHANGELOWERSTATE) N(UDP_TUNNEL_PUSH_INFO)
-	N(UDP_TUNNEL_DROP_INFO) N(CHANGE_TX_QUEUE_LEN)
-	N(CVLAN_FILTER_PUSH_INFO) N(CVLAN_FILTER_DROP_INFO)
-	N(SVLAN_FILTER_PUSH_INFO) N(SVLAN_FILTER_DROP_INFO)
-	N(PRE_CHANGEADDR)
+	switch (cmd)
+	{
+		N(UP) N(DOWN) N(REBOOT) N(CHANGE) N(REGISTER) N(UNREGISTER) N(CHANGEMTU) N(CHANGEADDR) N(GOING_DOWN) N(CHANGENAME) N(FEAT_CHANGE) N(BONDING_FAILOVER) N(PRE_UP) N(PRE_TYPE_CHANGE) N(POST_TYPE_CHANGE) N(POST_INIT) N(RELEASE) N(NOTIFY_PEERS) N(JOIN) N(CHANGEUPPER) N(RESEND_IGMP) N(PRECHANGEMTU) N(CHANGEINFODATA) N(BONDING_INFO) N(PRECHANGEUPPER) N(CHANGELOWERSTATE) N(UDP_TUNNEL_PUSH_INFO) N(UDP_TUNNEL_DROP_INFO) N(CHANGE_TX_QUEUE_LEN) N(CVLAN_FILTER_PUSH_INFO) N(CVLAN_FILTER_DROP_INFO) N(SVLAN_FILTER_PUSH_INFO) N(SVLAN_FILTER_DROP_INFO) N(PRE_CHANGEADDR)
 	}
 #undef N
 	return "UNKNOWN_NETDEV_EVENT";
 }
 EXPORT_SYMBOL_GPL(netdev_cmd_to_name);
 
-static int call_netdevice_notifier(struct notifier_block *nb, unsigned long val,
-				   struct net_device *dev)
+static int call_netdevice_notifier(struct notifier_block* nb, unsigned long val, struct net_device* dev)
 {
 	struct netdev_notifier_info info = {
 		.dev = dev,
@@ -1696,8 +1640,7 @@ static int call_netdevice_notifier(struct notifier_block *nb, unsigned long val,
 	return nb->notifier_call(nb, val, &info);
 }
 
-static int call_netdevice_register_notifiers(struct notifier_block *nb,
-					     struct net_device *dev)
+static int call_netdevice_register_notifiers(struct notifier_block* nb, struct net_device* dev)
 {
 	int err;
 
@@ -1713,24 +1656,23 @@ static int call_netdevice_register_notifiers(struct notifier_block *nb,
 	return 0;
 }
 
-static void call_netdevice_unregister_notifiers(struct notifier_block *nb,
-						struct net_device *dev)
+static void call_netdevice_unregister_notifiers(struct notifier_block* nb, struct net_device* dev)
 {
-	if (dev->flags & IFF_UP) {
-		call_netdevice_notifier(nb, NETDEV_GOING_DOWN,
-					dev);
+	if (dev->flags & IFF_UP)
+	{
+		call_netdevice_notifier(nb, NETDEV_GOING_DOWN, dev);
 		call_netdevice_notifier(nb, NETDEV_DOWN, dev);
 	}
 	call_netdevice_notifier(nb, NETDEV_UNREGISTER, dev);
 }
 
-static int call_netdevice_register_net_notifiers(struct notifier_block *nb,
-						 struct net *net)
+static int call_netdevice_register_net_notifiers(struct notifier_block* nb, struct net* net)
 {
-	struct net_device *dev;
+	struct net_device* dev;
 	int err;
 
-	for_each_netdev(net, dev) {
+	for_each_netdev(net, dev)
+	{
 		err = call_netdevice_register_notifiers(nb, dev);
 		if (err)
 			goto rollback;
@@ -1738,18 +1680,15 @@ static int call_netdevice_register_net_notifiers(struct notifier_block *nb,
 	return 0;
 
 rollback:
-	for_each_netdev_continue_reverse(net, dev)
-		call_netdevice_unregister_notifiers(nb, dev);
+	for_each_netdev_continue_reverse(net, dev) call_netdevice_unregister_notifiers(nb, dev);
 	return err;
 }
 
-static void call_netdevice_unregister_net_notifiers(struct notifier_block *nb,
-						    struct net *net)
+static void call_netdevice_unregister_net_notifiers(struct notifier_block* nb, struct net* net)
 {
-	struct net_device *dev;
+	struct net_device* dev;
 
-	for_each_netdev(net, dev)
-		call_netdevice_unregister_notifiers(nb, dev);
+	for_each_netdev(net, dev) call_netdevice_unregister_notifiers(nb, dev);
 }
 
 static int dev_boot_phase = 1;
@@ -1768,9 +1707,9 @@ static int dev_boot_phase = 1;
  * view of the network device list.
  */
 
-int register_netdevice_notifier(struct notifier_block *nb)
+int register_netdevice_notifier(struct notifier_block* nb)
 {
-	struct net *net;
+	struct net* net;
 	int err;
 
 	/* Close race with setup_net() and cleanup_net() */
@@ -1781,7 +1720,8 @@ int register_netdevice_notifier(struct notifier_block *nb)
 		goto unlock;
 	if (dev_boot_phase)
 		goto unlock;
-	for_each_net(net) {
+	for_each_net(net)
+	{
 		err = call_netdevice_register_net_notifiers(nb, net);
 		if (err)
 			goto rollback;
@@ -1793,8 +1733,7 @@ unlock:
 	return err;
 
 rollback:
-	for_each_net_continue_reverse(net)
-		call_netdevice_unregister_net_notifiers(nb, net);
+	for_each_net_continue_reverse(net) call_netdevice_unregister_net_notifiers(nb, net);
 
 	raw_notifier_chain_unregister(&netdev_chain, nb);
 	goto unlock;
@@ -1815,9 +1754,9 @@ EXPORT_SYMBOL(register_netdevice_notifier);
  * the need for special case cleanup code.
  */
 
-int unregister_netdevice_notifier(struct notifier_block *nb)
+int unregister_netdevice_notifier(struct notifier_block* nb)
 {
-	struct net *net;
+	struct net* net;
 	int err;
 
 	/* Close race with setup_net() and cleanup_net() */
@@ -1827,8 +1766,7 @@ int unregister_netdevice_notifier(struct notifier_block *nb)
 	if (err)
 		goto unlock;
 
-	for_each_net(net)
-		call_netdevice_unregister_net_notifiers(nb, net);
+	for_each_net(net) call_netdevice_unregister_net_notifiers(nb, net);
 
 unlock:
 	rtnl_unlock();
@@ -1837,9 +1775,7 @@ unlock:
 }
 EXPORT_SYMBOL(unregister_netdevice_notifier);
 
-static int __register_netdevice_notifier_net(struct net *net,
-					     struct notifier_block *nb,
-					     bool ignore_call_fail)
+static int __register_netdevice_notifier_net(struct net* net, struct notifier_block* nb, bool ignore_call_fail)
 {
 	int err;
 
@@ -1860,8 +1796,7 @@ chain_unregister:
 	return err;
 }
 
-static int __unregister_netdevice_notifier_net(struct net *net,
-					       struct notifier_block *nb)
+static int __unregister_netdevice_notifier_net(struct net* net, struct notifier_block* nb)
 {
 	int err;
 
@@ -1888,7 +1823,7 @@ static int __unregister_netdevice_notifier_net(struct net *net,
  * view of the network device list.
  */
 
-int register_netdevice_notifier_net(struct net *net, struct notifier_block *nb)
+int register_netdevice_notifier_net(struct net* net, struct notifier_block* nb)
 {
 	int err;
 
@@ -1915,8 +1850,7 @@ EXPORT_SYMBOL(register_netdevice_notifier_net);
  * the need for special case cleanup code.
  */
 
-int unregister_netdevice_notifier_net(struct net *net,
-				      struct notifier_block *nb)
+int unregister_netdevice_notifier_net(struct net* net, struct notifier_block* nb)
 {
 	int err;
 
@@ -1927,15 +1861,14 @@ int unregister_netdevice_notifier_net(struct net *net,
 }
 EXPORT_SYMBOL(unregister_netdevice_notifier_net);
 
-int register_netdevice_notifier_dev_net(struct net_device *dev,
-					struct notifier_block *nb,
-					struct netdev_net_notifier *nn)
+int register_netdevice_notifier_dev_net(struct net_device* dev, struct notifier_block* nb, struct netdev_net_notifier* nn)
 {
 	int err;
 
 	rtnl_lock();
 	err = __register_netdevice_notifier_net(dev_net(dev), nb, false);
-	if (!err) {
+	if (!err)
+	{
 		nn->nb = nb;
 		list_add(&nn->list, &dev->net_notifier_list);
 	}
@@ -1944,9 +1877,7 @@ int register_netdevice_notifier_dev_net(struct net_device *dev,
 }
 EXPORT_SYMBOL(register_netdevice_notifier_dev_net);
 
-int unregister_netdevice_notifier_dev_net(struct net_device *dev,
-					  struct notifier_block *nb,
-					  struct netdev_net_notifier *nn)
+int unregister_netdevice_notifier_dev_net(struct net_device* dev, struct notifier_block* nb, struct netdev_net_notifier* nn)
 {
 	int err;
 
@@ -1958,12 +1889,12 @@ int unregister_netdevice_notifier_dev_net(struct net_device *dev,
 }
 EXPORT_SYMBOL(unregister_netdevice_notifier_dev_net);
 
-static void move_netdevice_notifiers_dev_net(struct net_device *dev,
-					     struct net *net)
+static void move_netdevice_notifiers_dev_net(struct net_device* dev, struct net* net)
 {
-	struct netdev_net_notifier *nn;
+	struct netdev_net_notifier* nn;
 
-	list_for_each_entry(nn, &dev->net_notifier_list, list) {
+	list_for_each_entry(nn, &dev->net_notifier_list, list)
+	{
 		__unregister_netdevice_notifier_net(dev_net(dev), nn->nb);
 		__register_netdevice_notifier_net(net, nn->nb, true);
 	}
@@ -1978,10 +1909,9 @@ static void move_netdevice_notifiers_dev_net(struct net_device *dev,
  *	are as for raw_notifier_call_chain().
  */
 
-static int call_netdevice_notifiers_info(unsigned long val,
-					 struct netdev_notifier_info *info)
+static int call_netdevice_notifiers_info(unsigned long val, struct netdev_notifier_info* info)
 {
-	struct net *net = dev_net(info->dev);
+	struct net* net = dev_net(info->dev);
 	int ret;
 
 	ASSERT_RTNL();
@@ -1996,9 +1926,7 @@ static int call_netdevice_notifiers_info(unsigned long val,
 	return raw_notifier_call_chain(&netdev_chain, val, info);
 }
 
-static int call_netdevice_notifiers_extack(unsigned long val,
-					   struct net_device *dev,
-					   struct netlink_ext_ack *extack)
+static int call_netdevice_notifiers_extack(unsigned long val, struct net_device* dev, struct netlink_ext_ack* extack)
 {
 	struct netdev_notifier_info info = {
 		.dev = dev,
@@ -2017,7 +1945,7 @@ static int call_netdevice_notifiers_extack(unsigned long val,
  *	are as for raw_notifier_call_chain().
  */
 
-int call_netdevice_notifiers(unsigned long val, struct net_device *dev)
+int call_netdevice_notifiers(unsigned long val, struct net_device* dev)
 {
 	return call_netdevice_notifiers_extack(val, dev, NULL);
 }
@@ -2032,8 +1960,7 @@ EXPORT_SYMBOL(call_netdevice_notifiers);
  *	Call all network notifier blocks.  Parameters and return value
  *	are as for raw_notifier_call_chain().
  */
-static int call_netdevice_notifiers_mtu(unsigned long val,
-					struct net_device *dev, u32 arg)
+static int call_netdevice_notifiers_mtu(unsigned long val, struct net_device* dev, u32 arg)
 {
 	struct netdev_notifier_info_ext info = {
 		.info.dev = dev,
@@ -2081,7 +2008,7 @@ static DEFINE_STATIC_KEY_FALSE(netstamp_needed_key);
 #ifdef CONFIG_JUMP_LABEL
 static atomic_t netstamp_needed_deferred;
 static atomic_t netstamp_wanted;
-static void netstamp_clear(struct work_struct *work)
+static void netstamp_clear(struct work_struct* work)
 {
 	int deferred = atomic_xchg(&netstamp_needed_deferred, 0);
 	int wanted;
@@ -2100,7 +2027,8 @@ void net_enable_timestamp(void)
 #ifdef CONFIG_JUMP_LABEL
 	int wanted;
 
-	while (1) {
+	while (1)
+	{
 		wanted = atomic_read(&netstamp_wanted);
 		if (wanted <= 0)
 			break;
@@ -2120,7 +2048,8 @@ void net_disable_timestamp(void)
 #ifdef CONFIG_JUMP_LABEL
 	int wanted;
 
-	while (1) {
+	while (1)
+	{
 		wanted = atomic_read(&netstamp_wanted);
 		if (wanted <= 1)
 			break;
@@ -2135,31 +2064,32 @@ void net_disable_timestamp(void)
 }
 EXPORT_SYMBOL(net_disable_timestamp);
 
-static inline void net_timestamp_set(struct sk_buff *skb)
+static inline void net_timestamp_set(struct sk_buff* skb)
 {
 	skb->tstamp = 0;
 	if (static_branch_unlikely(&netstamp_needed_key))
 		__net_timestamp(skb);
 }
 
-#define net_timestamp_check(COND, SKB)				\
-	if (static_branch_unlikely(&netstamp_needed_key)) {	\
-		if ((COND) && !(SKB)->tstamp)			\
-			__net_timestamp(SKB);			\
-	}							\
+#define net_timestamp_check(COND, SKB)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         \
+	if (static_branch_unlikely(&netstamp_needed_key))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          \
+	{                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          \
+		if ((COND) && !(SKB)->tstamp)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          \
+			__net_timestamp(SKB);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              \
+	}
 
-bool is_skb_forwardable(const struct net_device *dev, const struct sk_buff *skb)
+bool is_skb_forwardable(const struct net_device* dev, const struct sk_buff* skb)
 {
 	return __is_skb_forwardable(dev, skb, true);
 }
 EXPORT_SYMBOL_GPL(is_skb_forwardable);
 
-static int __dev_forward_skb2(struct net_device *dev, struct sk_buff *skb,
-			      bool check_mtu)
+static int __dev_forward_skb2(struct net_device* dev, struct sk_buff* skb, bool check_mtu)
 {
 	int ret = ____dev_forward_skb(dev, skb, check_mtu);
 
-	if (likely(!ret)) {
+	if (likely(!ret))
+	{
 		skb->protocol = eth_type_trans(skb, dev);
 		skb_postpull_rcsum(skb, eth_hdr(skb), ETH_HLEN);
 	}
@@ -2167,7 +2097,7 @@ static int __dev_forward_skb2(struct net_device *dev, struct sk_buff *skb,
 	return ret;
 }
 
-int __dev_forward_skb(struct net_device *dev, struct sk_buff *skb)
+int __dev_forward_skb(struct net_device* dev, struct sk_buff* skb)
 {
 	return __dev_forward_skb2(dev, skb, true);
 }
@@ -2191,20 +2121,18 @@ EXPORT_SYMBOL_GPL(__dev_forward_skb);
  * we have to clear all information in the skb that could
  * impact namespace isolation.
  */
-int dev_forward_skb(struct net_device *dev, struct sk_buff *skb)
+int dev_forward_skb(struct net_device* dev, struct sk_buff* skb)
 {
 	return __dev_forward_skb(dev, skb) ?: netif_rx_internal(skb);
 }
 EXPORT_SYMBOL_GPL(dev_forward_skb);
 
-int dev_forward_skb_nomtu(struct net_device *dev, struct sk_buff *skb)
+int dev_forward_skb_nomtu(struct net_device* dev, struct sk_buff* skb)
 {
 	return __dev_forward_skb2(dev, skb, false) ?: netif_rx_internal(skb);
 }
 
-static inline int deliver_skb(struct sk_buff *skb,
-			      struct packet_type *pt_prev,
-			      struct net_device *orig_dev)
+static inline int deliver_skb(struct sk_buff* skb, struct packet_type* pt_prev, struct net_device* orig_dev)
 {
 	if (unlikely(skb_orphan_frags_rx(skb, GFP_ATOMIC)))
 		return -ENOMEM;
@@ -2212,15 +2140,12 @@ static inline int deliver_skb(struct sk_buff *skb,
 	return pt_prev->func(skb, skb->dev, pt_prev, orig_dev);
 }
 
-static inline void deliver_ptype_list_skb(struct sk_buff *skb,
-					  struct packet_type **pt,
-					  struct net_device *orig_dev,
-					  __be16 type,
-					  struct list_head *ptype_list)
+static inline void deliver_ptype_list_skb(struct sk_buff* skb, struct packet_type** pt, struct net_device* orig_dev, __be16 type, struct list_head* ptype_list)
 {
 	struct packet_type *ptype, *pt_prev = *pt;
 
-	list_for_each_entry_rcu(ptype, ptype_list, list) {
+	list_for_each_entry_rcu(ptype, ptype_list, list)
+	{
 		if (ptype->type != type)
 			continue;
 		if (pt_prev)
@@ -2230,14 +2155,14 @@ static inline void deliver_ptype_list_skb(struct sk_buff *skb,
 	*pt = pt_prev;
 }
 
-static inline bool skb_loop_sk(struct packet_type *ptype, struct sk_buff *skb)
+static inline bool skb_loop_sk(struct packet_type* ptype, struct sk_buff* skb)
 {
 	if (!ptype->af_packet_priv || !skb->sk)
 		return false;
 
 	if (ptype->id_match)
 		return ptype->id_match(ptype, skb->sk);
-	else if ((struct sock *)ptype->af_packet_priv == skb->sk)
+	else if ((struct sock*)ptype->af_packet_priv == skb->sk)
 		return true;
 
 	return false;
@@ -2248,7 +2173,7 @@ static inline bool skb_loop_sk(struct packet_type *ptype, struct sk_buff *skb)
  *
  * @dev: network device to check for the presence of taps
  */
-bool dev_nit_active(struct net_device *dev)
+bool dev_nit_active(struct net_device* dev)
 {
 	return !list_empty(&ptype_all) || !list_empty(&dev->ptype_all);
 }
@@ -2259,16 +2184,17 @@ EXPORT_SYMBOL_GPL(dev_nit_active);
  *	taps currently in use.
  */
 
-void dev_queue_xmit_nit(struct sk_buff *skb, struct net_device *dev)
+void dev_queue_xmit_nit(struct sk_buff* skb, struct net_device* dev)
 {
-	struct packet_type *ptype;
-	struct sk_buff *skb2 = NULL;
-	struct packet_type *pt_prev = NULL;
-	struct list_head *ptype_list = &ptype_all;
+	struct packet_type* ptype;
+	struct sk_buff* skb2 = NULL;
+	struct packet_type* pt_prev = NULL;
+	struct list_head* ptype_list = &ptype_all;
 
 	rcu_read_lock();
 again:
-	list_for_each_entry_rcu(ptype, ptype_list, list) {
+	list_for_each_entry_rcu(ptype, ptype_list, list)
+	{
 		if (ptype->ignore_outgoing)
 			continue;
 
@@ -2278,7 +2204,8 @@ again:
 		if (skb_loop_sk(ptype, skb))
 			continue;
 
-		if (pt_prev) {
+		if (pt_prev)
+		{
 			deliver_skb(skb2, pt_prev, skb->dev);
 			pt_prev = ptype;
 			continue;
@@ -2297,11 +2224,9 @@ again:
 		 */
 		skb_reset_mac_header(skb2);
 
-		if (skb_network_header(skb2) < skb2->data ||
-		    skb_network_header(skb2) > skb_tail_pointer(skb2)) {
-			net_crit_ratelimited("protocol %04x is buggy, dev %s\n",
-					     ntohs(skb2->protocol),
-					     dev->name);
+		if (skb_network_header(skb2) < skb2->data || skb_network_header(skb2) > skb_tail_pointer(skb2))
+		{
+			net_crit_ratelimited("protocol %04x is buggy, dev %s\n", ntohs(skb2->protocol), dev->name);
 			skb_reset_network_header(skb2);
 		}
 
@@ -2310,12 +2235,14 @@ again:
 		pt_prev = ptype;
 	}
 
-	if (ptype_list == &ptype_all) {
+	if (ptype_list == &ptype_all)
+	{
 		ptype_list = &dev->ptype_all;
 		goto again;
 	}
 out_unlock:
-	if (pt_prev) {
+	if (pt_prev)
+	{
 		if (!skb_orphan_frags_rx(skb2, GFP_ATOMIC))
 			pt_prev->func(skb2, skb->dev, pt_prev, skb->dev);
 		else
@@ -2338,39 +2265,43 @@ EXPORT_SYMBOL_GPL(dev_queue_xmit_nit);
  * expected that drivers will fix this mapping if they can before
  * calling netif_set_real_num_tx_queues.
  */
-static void netif_setup_tc(struct net_device *dev, unsigned int txq)
+static void netif_setup_tc(struct net_device* dev, unsigned int txq)
 {
 	int i;
-	struct netdev_tc_txq *tc = &dev->tc_to_txq[0];
+	struct netdev_tc_txq* tc = &dev->tc_to_txq[0];
 
 	/* If TC0 is invalidated disable TC mapping */
-	if (tc->offset + tc->count > txq) {
+	if (tc->offset + tc->count > txq)
+	{
 		pr_warn("Number of in use tx queues changed invalidating tc mappings. Priority traffic classification disabled!\n");
 		dev->num_tc = 0;
 		return;
 	}
 
 	/* Invalidated prio to tc mappings set to TC0 */
-	for (i = 1; i < TC_BITMASK + 1; i++) {
+	for (i = 1; i < TC_BITMASK + 1; i++)
+	{
 		int q = netdev_get_prio_tc_map(dev, i);
 
 		tc = &dev->tc_to_txq[q];
-		if (tc->offset + tc->count > txq) {
-			pr_warn("Number of in use tx queues changed. Priority %i to tc mapping %i is no longer valid. Setting map to 0\n",
-				i, q);
+		if (tc->offset + tc->count > txq)
+		{
+			pr_warn("Number of in use tx queues changed. Priority %i to tc mapping %i is no longer valid. Setting map to 0\n", i, q);
 			netdev_set_prio_tc_map(dev, i, 0);
 		}
 	}
 }
 
-int netdev_txq_to_tc(struct net_device *dev, unsigned int txq)
+int netdev_txq_to_tc(struct net_device* dev, unsigned int txq)
 {
-	if (dev->num_tc) {
-		struct netdev_tc_txq *tc = &dev->tc_to_txq[0];
+	if (dev->num_tc)
+	{
+		struct netdev_tc_txq* tc = &dev->tc_to_txq[0];
 		int i;
 
 		/* walk through the TCs and see if it falls into any of them */
-		for (i = 0; i < TC_MAX_QUEUE; i++, tc++) {
+		for (i = 0; i < TC_MAX_QUEUE; i++, tc++)
+		{
 			if ((txq - tc->offset) < tc->count)
 				return i;
 		}
@@ -2387,13 +2318,11 @@ EXPORT_SYMBOL(netdev_txq_to_tc);
 static struct static_key xps_needed __read_mostly;
 static struct static_key xps_rxqs_needed __read_mostly;
 static DEFINE_MUTEX(xps_map_mutex);
-#define xmap_dereference(P)		\
-	rcu_dereference_protected((P), lockdep_is_held(&xps_map_mutex))
+#define xmap_dereference(P) rcu_dereference_protected((P), lockdep_is_held(&xps_map_mutex))
 
-static bool remove_xps_queue(struct xps_dev_maps *dev_maps,
-			     struct xps_dev_maps *old_maps, int tci, u16 index)
+static bool remove_xps_queue(struct xps_dev_maps* dev_maps, struct xps_dev_maps* old_maps, int tci, u16 index)
 {
-	struct xps_map *map = NULL;
+	struct xps_map* map = NULL;
 	int pos;
 
 	if (dev_maps)
@@ -2401,11 +2330,13 @@ static bool remove_xps_queue(struct xps_dev_maps *dev_maps,
 	if (!map)
 		return false;
 
-	for (pos = map->len; pos--;) {
+	for (pos = map->len; pos--;)
+	{
 		if (map->queues[pos] != index)
 			continue;
 
-		if (map->len > 1) {
+		if (map->len > 1)
+		{
 			map->queues[pos] = map->queues[--map->len];
 			break;
 		}
@@ -2420,18 +2351,18 @@ static bool remove_xps_queue(struct xps_dev_maps *dev_maps,
 	return true;
 }
 
-static bool remove_xps_queue_cpu(struct net_device *dev,
-				 struct xps_dev_maps *dev_maps,
-				 int cpu, u16 offset, u16 count)
+static bool remove_xps_queue_cpu(struct net_device* dev, struct xps_dev_maps* dev_maps, int cpu, u16 offset, u16 count)
 {
 	int num_tc = dev_maps->num_tc;
 	bool active = false;
 	int tci;
 
-	for (tci = cpu * num_tc; num_tc--; tci++) {
+	for (tci = cpu * num_tc; num_tc--; tci++)
+	{
 		int i, j;
 
-		for (i = count, j = offset; i--; j++) {
+		for (i = count, j = offset; i--; j++)
+		{
 			if (!remove_xps_queue(dev_maps, NULL, tci, j))
 				break;
 		}
@@ -2442,9 +2373,7 @@ static bool remove_xps_queue_cpu(struct net_device *dev,
 	return active;
 }
 
-static void reset_xps_maps(struct net_device *dev,
-			   struct xps_dev_maps *dev_maps,
-			   enum xps_map_type type)
+static void reset_xps_maps(struct net_device* dev, struct xps_dev_maps* dev_maps, enum xps_map_type type)
 {
 	static_key_slow_dec_cpuslocked(&xps_needed);
 	if (type == XPS_RXQS)
@@ -2455,10 +2384,9 @@ static void reset_xps_maps(struct net_device *dev,
 	kfree_rcu(dev_maps, rcu);
 }
 
-static void clean_xps_maps(struct net_device *dev, enum xps_map_type type,
-			   u16 offset, u16 count)
+static void clean_xps_maps(struct net_device* dev, enum xps_map_type type, u16 offset, u16 count)
 {
-	struct xps_dev_maps *dev_maps;
+	struct xps_dev_maps* dev_maps;
 	bool active = false;
 	int i, j;
 
@@ -2471,15 +2399,14 @@ static void clean_xps_maps(struct net_device *dev, enum xps_map_type type,
 	if (!active)
 		reset_xps_maps(dev, dev_maps, type);
 
-	if (type == XPS_CPUS) {
+	if (type == XPS_CPUS)
+	{
 		for (i = offset + (count - 1); count--; i--)
-			netdev_queue_numa_node_write(
-				netdev_get_tx_queue(dev, i), NUMA_NO_NODE);
+			netdev_queue_numa_node_write(netdev_get_tx_queue(dev, i), NUMA_NO_NODE);
 	}
 }
 
-static void netif_reset_xps_queues(struct net_device *dev, u16 offset,
-				   u16 count)
+static void netif_reset_xps_queues(struct net_device* dev, u16 offset, u16 count)
 {
 	if (!static_key_false(&xps_needed))
 		return;
@@ -2496,26 +2423,27 @@ static void netif_reset_xps_queues(struct net_device *dev, u16 offset,
 	cpus_read_unlock();
 }
 
-static void netif_reset_xps_queues_gt(struct net_device *dev, u16 index)
+static void netif_reset_xps_queues_gt(struct net_device* dev, u16 index)
 {
 	netif_reset_xps_queues(dev, index, dev->num_tx_queues - index);
 }
 
-static struct xps_map *expand_xps_map(struct xps_map *map, int attr_index,
-				      u16 index, bool is_rxqs_map)
+static struct xps_map* expand_xps_map(struct xps_map* map, int attr_index, u16 index, bool is_rxqs_map)
 {
-	struct xps_map *new_map;
+	struct xps_map* new_map;
 	int alloc_len = XPS_MIN_MAP_ALLOC;
 	int i, pos;
 
-	for (pos = 0; map && pos < map->len; pos++) {
+	for (pos = 0; map && pos < map->len; pos++)
+	{
 		if (map->queues[pos] != index)
 			continue;
 		return map;
 	}
 
 	/* Need to add tx-queue to this CPU's/rx-queue's existing map */
-	if (map) {
+	if (map)
+	{
 		if (pos < map->alloc_len)
 			return map;
 
@@ -2528,8 +2456,7 @@ static struct xps_map *expand_xps_map(struct xps_map *map, int attr_index,
 	if (is_rxqs_map)
 		new_map = kzalloc(XPS_MAP_SIZE(alloc_len), GFP_KERNEL);
 	else
-		new_map = kzalloc_node(XPS_MAP_SIZE(alloc_len), GFP_KERNEL,
-				       cpu_to_node(attr_index));
+		new_map = kzalloc_node(XPS_MAP_SIZE(alloc_len), GFP_KERNEL, cpu_to_node(attr_index));
 	if (!new_map)
 		return NULL;
 
@@ -2542,15 +2469,14 @@ static struct xps_map *expand_xps_map(struct xps_map *map, int attr_index,
 }
 
 /* Copy xps maps at a given index */
-static void xps_copy_dev_maps(struct xps_dev_maps *dev_maps,
-			      struct xps_dev_maps *new_dev_maps, int index,
-			      int tc, bool skip_tc)
+static void xps_copy_dev_maps(struct xps_dev_maps* dev_maps, struct xps_dev_maps* new_dev_maps, int index, int tc, bool skip_tc)
 {
 	int i, tci = index * dev_maps->num_tc;
-	struct xps_map *map;
+	struct xps_map* map;
 
 	/* copy maps belonging to foreign traffic classes */
-	for (i = 0; i < dev_maps->num_tc; i++, tci++) {
+	for (i = 0; i < dev_maps->num_tc; i++, tci++)
+	{
 		if (i == tc && skip_tc)
 			continue;
 
@@ -2561,25 +2487,25 @@ static void xps_copy_dev_maps(struct xps_dev_maps *dev_maps,
 }
 
 /* Must be called under cpus_read_lock */
-int __netif_set_xps_queue(struct net_device *dev, const unsigned long *mask,
-			  u16 index, enum xps_map_type type)
+int __netif_set_xps_queue(struct net_device* dev, const unsigned long* mask, u16 index, enum xps_map_type type)
 {
 	struct xps_dev_maps *dev_maps, *new_dev_maps = NULL, *old_dev_maps = NULL;
-	const unsigned long *online_mask = NULL;
+	const unsigned long* online_mask = NULL;
 	bool active = false, copy = false;
 	int i, j, tci, numa_node_id = -2;
 	int maps_sz, num_tc = 1, tc = 0;
 	struct xps_map *map, *new_map;
 	unsigned int nr_ids;
 
-	if (dev->num_tc) {
+	if (dev->num_tc)
+	{
 		/* Do not allow XPS on subordinate device directly */
 		num_tc = dev->num_tc;
 		if (num_tc < 0)
 			return -EINVAL;
 
 		/* If queue belongs to subordinate dev use its map */
-		dev = netdev_get_tx_queue(dev, index)->sb_dev ? : dev;
+		dev = netdev_get_tx_queue(dev, index)->sb_dev ?: dev;
 
 		tc = netdev_txq_to_tc(dev, index);
 		if (tc < 0)
@@ -2589,10 +2515,13 @@ int __netif_set_xps_queue(struct net_device *dev, const unsigned long *mask,
 	mutex_lock(&xps_map_mutex);
 
 	dev_maps = xmap_dereference(dev->xps_maps[type]);
-	if (type == XPS_RXQS) {
+	if (type == XPS_RXQS)
+	{
 		maps_sz = XPS_RXQ_DEV_MAPS_SIZE(num_tc, dev->num_rx_queues);
 		nr_ids = dev->num_rx_queues;
-	} else {
+	}
+	else
+	{
 		maps_sz = XPS_CPU_DEV_MAPS_SIZE(num_tc);
 		if (num_possible_cpus() > 1)
 			online_mask = cpumask_bits(cpu_online_mask);
@@ -2607,16 +2536,17 @@ int __netif_set_xps_queue(struct net_device *dev, const unsigned long *mask,
 	 * between. We could try to be smart, but let's be safe instead and only
 	 * copy foreign traffic classes if the two map sizes match.
 	 */
-	if (dev_maps &&
-	    dev_maps->num_tc == num_tc && dev_maps->nr_ids == nr_ids)
+	if (dev_maps && dev_maps->num_tc == num_tc && dev_maps->nr_ids == nr_ids)
 		copy = true;
 
 	/* allocate memory for queue storage */
-	for (j = -1; j = netif_attrmask_next_and(j, online_mask, mask, nr_ids),
-	     j < nr_ids;) {
-		if (!new_dev_maps) {
+	for (j = -1; j = netif_attrmask_next_and(j, online_mask, mask, nr_ids), j < nr_ids;)
+	{
+		if (!new_dev_maps)
+		{
 			new_dev_maps = kzalloc(maps_sz, GFP_KERNEL);
-			if (!new_dev_maps) {
+			if (!new_dev_maps)
+			{
 				mutex_unlock(&xps_map_mutex);
 				return -ENOMEM;
 			}
@@ -2638,19 +2568,21 @@ int __netif_set_xps_queue(struct net_device *dev, const unsigned long *mask,
 	if (!new_dev_maps)
 		goto out_no_new_maps;
 
-	if (!dev_maps) {
+	if (!dev_maps)
+	{
 		/* Increment static keys at most once per type */
 		static_key_slow_inc_cpuslocked(&xps_needed);
 		if (type == XPS_RXQS)
 			static_key_slow_inc_cpuslocked(&xps_rxqs_needed);
 	}
 
-	for (j = 0; j < nr_ids; j++) {
+	for (j = 0; j < nr_ids; j++)
+	{
 		bool skip_tc = false;
 
 		tci = j * num_tc + tc;
-		if (netif_attr_test_mask(j, mask, nr_ids) &&
-		    netif_attr_test_online(j, online_mask, nr_ids)) {
+		if (netif_attr_test_mask(j, mask, nr_ids) && netif_attr_test_online(j, online_mask, nr_ids))
+		{
 			/* add tx-queue to CPU/rx-queue maps */
 			int pos = 0;
 
@@ -2663,7 +2595,8 @@ int __netif_set_xps_queue(struct net_device *dev, const unsigned long *mask,
 			if (pos == map->len)
 				map->queues[map->len++] = index;
 #ifdef CONFIG_NUMA
-			if (type == XPS_CPUS) {
+			if (type == XPS_CPUS)
+			{
 				if (numa_node_id == -2)
 					numa_node_id = cpu_to_node(j);
 				else if (numa_node_id != cpu_to_node(j))
@@ -2673,8 +2606,7 @@ int __netif_set_xps_queue(struct net_device *dev, const unsigned long *mask,
 		}
 
 		if (copy)
-			xps_copy_dev_maps(dev_maps, new_dev_maps, j, tc,
-					  skip_tc);
+			xps_copy_dev_maps(dev_maps, new_dev_maps, j, tc, skip_tc);
 	}
 
 	rcu_assign_pointer(dev->xps_maps[type], new_dev_maps);
@@ -2683,13 +2615,16 @@ int __netif_set_xps_queue(struct net_device *dev, const unsigned long *mask,
 	if (!dev_maps)
 		goto out_no_old_maps;
 
-	for (j = 0; j < dev_maps->nr_ids; j++) {
-		for (i = num_tc, tci = j * dev_maps->num_tc; i--; tci++) {
+	for (j = 0; j < dev_maps->nr_ids; j++)
+	{
+		for (i = num_tc, tci = j * dev_maps->num_tc; i--; tci++)
+		{
 			map = xmap_dereference(dev_maps->attr_map[tci]);
 			if (!map)
 				continue;
 
-			if (copy) {
+			if (copy)
+			{
 				new_map = xmap_dereference(new_dev_maps->attr_map[tci]);
 				if (map == new_map)
 					continue;
@@ -2709,26 +2644,22 @@ out_no_old_maps:
 out_no_new_maps:
 	if (type == XPS_CPUS)
 		/* update Tx queue numa node */
-		netdev_queue_numa_node_write(netdev_get_tx_queue(dev, index),
-					     (numa_node_id >= 0) ?
-					     numa_node_id : NUMA_NO_NODE);
+		netdev_queue_numa_node_write(netdev_get_tx_queue(dev, index), (numa_node_id >= 0) ? numa_node_id : NUMA_NO_NODE);
 
 	if (!dev_maps)
 		goto out_no_maps;
 
 	/* removes tx-queue from unused CPUs/rx-queues */
-	for (j = 0; j < dev_maps->nr_ids; j++) {
+	for (j = 0; j < dev_maps->nr_ids; j++)
+	{
 		tci = j * dev_maps->num_tc;
 
-		for (i = 0; i < dev_maps->num_tc; i++, tci++) {
-			if (i == tc &&
-			    netif_attr_test_mask(j, mask, dev_maps->nr_ids) &&
-			    netif_attr_test_online(j, online_mask, dev_maps->nr_ids))
+		for (i = 0; i < dev_maps->num_tc; i++, tci++)
+		{
+			if (i == tc && netif_attr_test_mask(j, mask, dev_maps->nr_ids) && netif_attr_test_online(j, online_mask, dev_maps->nr_ids))
 				continue;
 
-			active |= remove_xps_queue(dev_maps,
-						   copy ? old_dev_maps : NULL,
-						   tci, index);
+			active |= remove_xps_queue(dev_maps, copy ? old_dev_maps : NULL, tci, index);
 		}
 	}
 
@@ -2745,12 +2676,12 @@ out_no_maps:
 	return 0;
 error:
 	/* remove any maps that we added */
-	for (j = 0; j < nr_ids; j++) {
-		for (i = num_tc, tci = j * num_tc; i--; tci++) {
+	for (j = 0; j < nr_ids; j++)
+	{
+		for (i = num_tc, tci = j * num_tc; i--; tci++)
+		{
 			new_map = xmap_dereference(new_dev_maps->attr_map[tci]);
-			map = copy ?
-			      xmap_dereference(dev_maps->attr_map[tci]) :
-			      NULL;
+			map = copy ? xmap_dereference(dev_maps->attr_map[tci]) : NULL;
 			if (new_map && new_map != map)
 				kfree(new_map);
 		}
@@ -2763,13 +2694,12 @@ error:
 }
 EXPORT_SYMBOL_GPL(__netif_set_xps_queue);
 
-int netif_set_xps_queue(struct net_device *dev, const struct cpumask *mask,
-			u16 index)
+int netif_set_xps_queue(struct net_device* dev, const struct cpumask* mask, u16 index)
 {
 	int ret;
 
 	cpus_read_lock();
-	ret =  __netif_set_xps_queue(dev, cpumask_bits(mask), index, XPS_CPUS);
+	ret = __netif_set_xps_queue(dev, cpumask_bits(mask), index, XPS_CPUS);
 	cpus_read_unlock();
 
 	return ret;
@@ -2777,18 +2707,19 @@ int netif_set_xps_queue(struct net_device *dev, const struct cpumask *mask,
 EXPORT_SYMBOL(netif_set_xps_queue);
 
 #endif
-static void netdev_unbind_all_sb_channels(struct net_device *dev)
+static void netdev_unbind_all_sb_channels(struct net_device* dev)
 {
-	struct netdev_queue *txq = &dev->_tx[dev->num_tx_queues];
+	struct netdev_queue* txq = &dev->_tx[dev->num_tx_queues];
 
 	/* Unbind any subordinate channels */
-	while (txq-- != &dev->_tx[0]) {
+	while (txq-- != &dev->_tx[0])
+	{
 		if (txq->sb_dev)
 			netdev_unbind_sb_channel(dev, txq->sb_dev);
 	}
 }
 
-void netdev_reset_tc(struct net_device *dev)
+void netdev_reset_tc(struct net_device* dev)
 {
 #ifdef CONFIG_XPS
 	netif_reset_xps_queues_gt(dev, 0);
@@ -2802,7 +2733,7 @@ void netdev_reset_tc(struct net_device *dev)
 }
 EXPORT_SYMBOL(netdev_reset_tc);
 
-int netdev_set_tc_queue(struct net_device *dev, u8 tc, u16 count, u16 offset)
+int netdev_set_tc_queue(struct net_device* dev, u8 tc, u16 count, u16 offset)
 {
 	if (tc >= dev->num_tc)
 		return -EINVAL;
@@ -2816,7 +2747,7 @@ int netdev_set_tc_queue(struct net_device *dev, u8 tc, u16 count, u16 offset)
 }
 EXPORT_SYMBOL(netdev_set_tc_queue);
 
-int netdev_set_num_tc(struct net_device *dev, u8 num_tc)
+int netdev_set_num_tc(struct net_device* dev, u8 num_tc)
 {
 	if (num_tc > TC_MAX_QUEUE)
 		return -EINVAL;
@@ -2831,10 +2762,9 @@ int netdev_set_num_tc(struct net_device *dev, u8 num_tc)
 }
 EXPORT_SYMBOL(netdev_set_num_tc);
 
-void netdev_unbind_sb_channel(struct net_device *dev,
-			      struct net_device *sb_dev)
+void netdev_unbind_sb_channel(struct net_device* dev, struct net_device* sb_dev)
 {
-	struct netdev_queue *txq = &dev->_tx[dev->num_tx_queues];
+	struct netdev_queue* txq = &dev->_tx[dev->num_tx_queues];
 
 #ifdef CONFIG_XPS
 	netif_reset_xps_queues_gt(sb_dev, 0);
@@ -2842,16 +2772,15 @@ void netdev_unbind_sb_channel(struct net_device *dev,
 	memset(sb_dev->tc_to_txq, 0, sizeof(sb_dev->tc_to_txq));
 	memset(sb_dev->prio_tc_map, 0, sizeof(sb_dev->prio_tc_map));
 
-	while (txq-- != &dev->_tx[0]) {
+	while (txq-- != &dev->_tx[0])
+	{
 		if (txq->sb_dev == sb_dev)
 			txq->sb_dev = NULL;
 	}
 }
 EXPORT_SYMBOL(netdev_unbind_sb_channel);
 
-int netdev_bind_sb_channel_queue(struct net_device *dev,
-				 struct net_device *sb_dev,
-				 u8 tc, u16 count, u16 offset)
+int netdev_bind_sb_channel_queue(struct net_device* dev, struct net_device* sb_dev, u8 tc, u16 count, u16 offset)
 {
 	/* Make certain the sb_dev and dev are already configured */
 	if (sb_dev->num_tc >= 0 || tc >= dev->num_tc)
@@ -2875,7 +2804,7 @@ int netdev_bind_sb_channel_queue(struct net_device *dev,
 }
 EXPORT_SYMBOL(netdev_bind_sb_channel_queue);
 
-int netdev_set_sb_channel(struct net_device *dev, u16 channel)
+int netdev_set_sb_channel(struct net_device* dev, u16 channel)
 {
 	/* Do not use a multiqueue device to represent a subordinate channel */
 	if (netif_is_multiqueue(dev))
@@ -2899,7 +2828,7 @@ EXPORT_SYMBOL(netdev_set_sb_channel);
  * Routine to help set real_num_tx_queues. To avoid skbs mapped to queues
  * greater than real_num_tx_queues stale skbs on the qdisc must be flushed.
  */
-int netif_set_real_num_tx_queues(struct net_device *dev, unsigned int txq)
+int netif_set_real_num_tx_queues(struct net_device* dev, unsigned int txq)
 {
 	bool disabling;
 	int rc;
@@ -2909,12 +2838,11 @@ int netif_set_real_num_tx_queues(struct net_device *dev, unsigned int txq)
 	if (txq < 1 || txq > dev->num_tx_queues)
 		return -EINVAL;
 
-	if (dev->reg_state == NETREG_REGISTERED ||
-	    dev->reg_state == NETREG_UNREGISTERING) {
+	if (dev->reg_state == NETREG_REGISTERED || dev->reg_state == NETREG_UNREGISTERING)
+	{
 		ASSERT_RTNL();
 
-		rc = netdev_queue_update_kobjects(dev, dev->real_num_tx_queues,
-						  txq);
+		rc = netdev_queue_update_kobjects(dev, dev->real_num_tx_queues, txq);
 		if (rc)
 			return rc;
 
@@ -2923,14 +2851,17 @@ int netif_set_real_num_tx_queues(struct net_device *dev, unsigned int txq)
 
 		dev->real_num_tx_queues = txq;
 
-		if (disabling) {
+		if (disabling)
+		{
 			synchronize_net();
 			qdisc_reset_all_tx_gt(dev, txq);
 #ifdef CONFIG_XPS
 			netif_reset_xps_queues_gt(dev, txq);
 #endif
 		}
-	} else {
+	}
+	else
+	{
 		dev->real_num_tx_queues = txq;
 	}
 
@@ -2949,18 +2880,18 @@ EXPORT_SYMBOL(netif_set_real_num_tx_queues);
  *	negative error code.  If called before registration, it always
  *	succeeds.
  */
-int netif_set_real_num_rx_queues(struct net_device *dev, unsigned int rxq)
+int netif_set_real_num_rx_queues(struct net_device* dev, unsigned int rxq)
 {
 	int rc;
 
 	if (rxq < 1 || rxq > dev->num_rx_queues)
 		return -EINVAL;
 
-	if (dev->reg_state == NETREG_REGISTERED) {
+	if (dev->reg_state == NETREG_REGISTERED)
+	{
 		ASSERT_RTNL();
 
-		rc = net_rx_queue_update_kobjects(dev, dev->real_num_rx_queues,
-						  rxq);
+		rc = net_rx_queue_update_kobjects(dev, dev->real_num_rx_queues, rxq);
 		if (rc)
 			return rc;
 	}
@@ -2980,25 +2911,25 @@ EXPORT_SYMBOL(netif_set_real_num_rx_queues);
  *	Set the real number of both TX and RX queues.
  *	Does nothing if the number of queues is already correct.
  */
-int netif_set_real_num_queues(struct net_device *dev,
-			      unsigned int txq, unsigned int rxq)
+int netif_set_real_num_queues(struct net_device* dev, unsigned int txq, unsigned int rxq)
 {
 	unsigned int old_rxq = dev->real_num_rx_queues;
 	int err;
 
-	if (txq < 1 || txq > dev->num_tx_queues ||
-	    rxq < 1 || rxq > dev->num_rx_queues)
+	if (txq < 1 || txq > dev->num_tx_queues || rxq < 1 || rxq > dev->num_rx_queues)
 		return -EINVAL;
 
 	/* Start from increases, so the error path only does decreases -
 	 * decreases can't fail.
 	 */
-	if (rxq > dev->real_num_rx_queues) {
+	if (rxq > dev->real_num_rx_queues)
+	{
 		err = netif_set_real_num_rx_queues(dev, rxq);
 		if (err)
 			return err;
 	}
-	if (txq > dev->real_num_tx_queues) {
+	if (txq > dev->real_num_tx_queues)
+	{
 		err = netif_set_real_num_tx_queues(dev, txq);
 		if (err)
 			goto undo_rx;
@@ -3023,14 +2954,13 @@ EXPORT_SYMBOL(netif_set_real_num_queues);
  */
 int netif_get_num_default_rss_queues(void)
 {
-	return is_kdump_kernel() ?
-		1 : min_t(int, DEFAULT_MAX_NUM_RSS_QUEUES, num_online_cpus());
+	return is_kdump_kernel() ? 1 : min_t(int, DEFAULT_MAX_NUM_RSS_QUEUES, num_online_cpus());
 }
 EXPORT_SYMBOL(netif_get_num_default_rss_queues);
 
-static void __netif_reschedule(struct Qdisc *q)
+static void __netif_reschedule(struct Qdisc* q)
 {
-	struct softnet_data *sd;
+	struct softnet_data* sd;
 	unsigned long flags;
 
 	local_irq_save(flags);
@@ -3042,27 +2972,29 @@ static void __netif_reschedule(struct Qdisc *q)
 	local_irq_restore(flags);
 }
 
-void __netif_schedule(struct Qdisc *q)
+void __netif_schedule(struct Qdisc* q)
 {
 	if (!test_and_set_bit(__QDISC_STATE_SCHED, &q->state))
 		__netif_reschedule(q);
 }
 EXPORT_SYMBOL(__netif_schedule);
 
-struct dev_kfree_skb_cb {
+struct dev_kfree_skb_cb
+{
 	enum skb_free_reason reason;
 };
 
-static struct dev_kfree_skb_cb *get_kfree_skb_cb(const struct sk_buff *skb)
+static struct dev_kfree_skb_cb* get_kfree_skb_cb(const struct sk_buff* skb)
 {
-	return (struct dev_kfree_skb_cb *)skb->cb;
+	return (struct dev_kfree_skb_cb*)skb->cb;
 }
 
-void netif_schedule_queue(struct netdev_queue *txq)
+void netif_schedule_queue(struct netdev_queue* txq)
 {
 	rcu_read_lock();
-	if (!netif_xmit_stopped(txq)) {
-		struct Qdisc *q = rcu_dereference(txq->qdisc);
+	if (!netif_xmit_stopped(txq))
+	{
+		struct Qdisc* q = rcu_dereference(txq->qdisc);
 
 		__netif_schedule(q);
 	}
@@ -3070,10 +3002,11 @@ void netif_schedule_queue(struct netdev_queue *txq)
 }
 EXPORT_SYMBOL(netif_schedule_queue);
 
-void netif_tx_wake_queue(struct netdev_queue *dev_queue)
+void netif_tx_wake_queue(struct netdev_queue* dev_queue)
 {
-	if (test_and_clear_bit(__QUEUE_STATE_DRV_XOFF, &dev_queue->state)) {
-		struct Qdisc *q;
+	if (test_and_clear_bit(__QUEUE_STATE_DRV_XOFF, &dev_queue->state))
+	{
+		struct Qdisc* q;
 
 		rcu_read_lock();
 		q = rcu_dereference(dev_queue->qdisc);
@@ -3083,17 +3016,20 @@ void netif_tx_wake_queue(struct netdev_queue *dev_queue)
 }
 EXPORT_SYMBOL(netif_tx_wake_queue);
 
-void __dev_kfree_skb_irq(struct sk_buff *skb, enum skb_free_reason reason)
+void __dev_kfree_skb_irq(struct sk_buff* skb, enum skb_free_reason reason)
 {
 	unsigned long flags;
 
 	if (unlikely(!skb))
 		return;
 
-	if (likely(refcount_read(&skb->users) == 1)) {
+	if (likely(refcount_read(&skb->users) == 1))
+	{
 		smp_rmb();
 		refcount_set(&skb->users, 0);
-	} else if (likely(!refcount_dec_and_test(&skb->users))) {
+	}
+	else if (likely(!refcount_dec_and_test(&skb->users)))
+	{
 		return;
 	}
 	get_kfree_skb_cb(skb)->reason = reason;
@@ -3105,7 +3041,7 @@ void __dev_kfree_skb_irq(struct sk_buff *skb, enum skb_free_reason reason)
 }
 EXPORT_SYMBOL(__dev_kfree_skb_irq);
 
-void __dev_kfree_skb_any(struct sk_buff *skb, enum skb_free_reason reason)
+void __dev_kfree_skb_any(struct sk_buff* skb, enum skb_free_reason reason)
 {
 	if (in_hardirq() || irqs_disabled())
 		__dev_kfree_skb_irq(skb, reason);
@@ -3114,17 +3050,16 @@ void __dev_kfree_skb_any(struct sk_buff *skb, enum skb_free_reason reason)
 }
 EXPORT_SYMBOL(__dev_kfree_skb_any);
 
-
 /**
  * netif_device_detach - mark device as removed
  * @dev: network device
  *
  * Mark device as removed from system and therefore no longer available.
  */
-void netif_device_detach(struct net_device *dev)
+void netif_device_detach(struct net_device* dev)
 {
-	if (test_and_clear_bit(__LINK_STATE_PRESENT, &dev->state) &&
-	    netif_running(dev)) {
+	if (test_and_clear_bit(__LINK_STATE_PRESENT, &dev->state) && netif_running(dev))
+	{
 		netif_tx_stop_all_queues(dev);
 	}
 }
@@ -3136,10 +3071,10 @@ EXPORT_SYMBOL(netif_device_detach);
  *
  * Mark device as attached from system and restart if needed.
  */
-void netif_device_attach(struct net_device *dev)
+void netif_device_attach(struct net_device* dev)
 {
-	if (!test_and_set_bit(__LINK_STATE_PRESENT, &dev->state) &&
-	    netif_running(dev)) {
+	if (!test_and_set_bit(__LINK_STATE_PRESENT, &dev->state) && netif_running(dev))
+	{
 		netif_tx_wake_all_queues(dev);
 		__netdev_watchdog_up(dev);
 	}
@@ -3150,28 +3085,28 @@ EXPORT_SYMBOL(netif_device_attach);
  * Returns a Tx hash based on the given packet descriptor a Tx queues' number
  * to be used as a distribution range.
  */
-static u16 skb_tx_hash(const struct net_device *dev,
-		       const struct net_device *sb_dev,
-		       struct sk_buff *skb)
+static u16 skb_tx_hash(const struct net_device* dev, const struct net_device* sb_dev, struct sk_buff* skb)
 {
 	u32 hash;
 	u16 qoffset = 0;
 	u16 qcount = dev->real_num_tx_queues;
 
-	if (dev->num_tc) {
+	if (dev->num_tc)
+	{
 		u8 tc = netdev_get_prio_tc_map(dev, skb->priority);
 
 		qoffset = sb_dev->tc_to_txq[tc].offset;
 		qcount = sb_dev->tc_to_txq[tc].count;
-		if (unlikely(!qcount)) {
-			net_warn_ratelimited("%s: invalid qcount, qoffset %u for tc %u\n",
-					     sb_dev->name, qoffset, tc);
+		if (unlikely(!qcount))
+		{
+			net_warn_ratelimited("%s: invalid qcount, qoffset %u for tc %u\n", sb_dev->name, qoffset, tc);
 			qoffset = 0;
 			qcount = dev->real_num_tx_queues;
 		}
 	}
 
-	if (skb_rx_queue_recorded(skb)) {
+	if (skb_rx_queue_recorded(skb))
+	{
 		hash = skb_get_rx_queue(skb);
 		if (hash >= qoffset)
 			hash -= qoffset;
@@ -3180,35 +3115,34 @@ static u16 skb_tx_hash(const struct net_device *dev,
 		return hash + qoffset;
 	}
 
-	return (u16) reciprocal_scale(skb_get_hash(skb), qcount) + qoffset;
+	return (u16)reciprocal_scale(skb_get_hash(skb), qcount) + qoffset;
 }
 
-static void skb_warn_bad_offload(const struct sk_buff *skb)
+static void skb_warn_bad_offload(const struct sk_buff* skb)
 {
 	static const netdev_features_t null_features;
-	struct net_device *dev = skb->dev;
-	const char *name = "";
+	struct net_device* dev = skb->dev;
+	const char* name = "";
 
 	if (!net_ratelimit())
 		return;
 
-	if (dev) {
+	if (dev)
+	{
 		if (dev->dev.parent)
 			name = dev_driver_string(dev->dev.parent);
 		else
 			name = netdev_name(dev);
 	}
 	skb_dump(KERN_WARNING, skb, false);
-	WARN(1, "%s: caps=(%pNF, %pNF)\n",
-	     name, dev ? &dev->features : &null_features,
-	     skb->sk ? &skb->sk->sk_route_caps : &null_features);
+	WARN(1, "%s: caps=(%pNF, %pNF)\n", name, dev ? &dev->features : &null_features, skb->sk ? &skb->sk->sk_route_caps : &null_features);
 }
 
 /*
  * Invalidate hardware checksum when packet is to be mangled, and
  * complete checksum manually on outgoing path.
  */
-int skb_checksum_help(struct sk_buff *skb)
+int skb_checksum_help(struct sk_buff* skb)
 {
 	__wsum csum;
 	int ret = 0, offset;
@@ -3216,7 +3150,8 @@ int skb_checksum_help(struct sk_buff *skb)
 	if (skb->ip_summed == CHECKSUM_COMPLETE)
 		goto out_set_summed;
 
-	if (unlikely(skb_is_gso(skb))) {
+	if (unlikely(skb_is_gso(skb)))
+	{
 		skb_warn_bad_offload(skb);
 		return -EINVAL;
 	}
@@ -3224,7 +3159,8 @@ int skb_checksum_help(struct sk_buff *skb)
 	/* Before computing a checksum, we should make sure no frag could
 	 * be modified by an external entity : checksum could be wrong.
 	 */
-	if (skb_has_shared_frag(skb)) {
+	if (skb_has_shared_frag(skb))
+	{
 		ret = __skb_linearize(skb);
 		if (ret)
 			goto out;
@@ -3241,7 +3177,7 @@ int skb_checksum_help(struct sk_buff *skb)
 	if (ret)
 		goto out;
 
-	*(__sum16 *)(skb->data + offset) = csum_fold(csum) ?: CSUM_MANGLED_0;
+	*(__sum16*)(skb->data + offset) = csum_fold(csum) ?: CSUM_MANGLED_0;
 out_set_summed:
 	skb->ip_summed = CHECKSUM_NONE;
 out:
@@ -3249,7 +3185,7 @@ out:
 }
 EXPORT_SYMBOL(skb_checksum_help);
 
-int skb_crc32c_csum_help(struct sk_buff *skb)
+int skb_crc32c_csum_help(struct sk_buff* skb)
 {
 	__le32 crc32c_csum;
 	int ret = 0, offset, start;
@@ -3263,14 +3199,16 @@ int skb_crc32c_csum_help(struct sk_buff *skb)
 	/* Before computing a checksum, we should make sure no frag could
 	 * be modified by an external entity : checksum could be wrong.
 	 */
-	if (unlikely(skb_has_shared_frag(skb))) {
+	if (unlikely(skb_has_shared_frag(skb)))
+	{
 		ret = __skb_linearize(skb);
 		if (ret)
 			goto out;
 	}
 	start = skb_checksum_start_offset(skb);
 	offset = start + offsetof(struct sctphdr, checksum);
-	if (WARN_ON_ONCE(offset >= skb_headlen(skb))) {
+	if (WARN_ON_ONCE(offset >= skb_headlen(skb)))
+	{
 		ret = -EINVAL;
 		goto out;
 	}
@@ -3279,28 +3217,27 @@ int skb_crc32c_csum_help(struct sk_buff *skb)
 	if (ret)
 		goto out;
 
-	crc32c_csum = cpu_to_le32(~__skb_checksum(skb, start,
-						  skb->len - start, ~(__u32)0,
-						  crc32c_csum_stub));
-	*(__le32 *)(skb->data + offset) = crc32c_csum;
+	crc32c_csum = cpu_to_le32(~__skb_checksum(skb, start, skb->len - start, ~(__u32)0, crc32c_csum_stub));
+	*(__le32*)(skb->data + offset) = crc32c_csum;
 	skb->ip_summed = CHECKSUM_NONE;
 	skb->csum_not_inet = 0;
 out:
 	return ret;
 }
 
-__be16 skb_network_protocol(struct sk_buff *skb, int *depth)
+__be16 skb_network_protocol(struct sk_buff* skb, int* depth)
 {
 	__be16 type = skb->protocol;
 
 	/* Tunnel gso handlers can set protocol to ethernet. */
-	if (type == htons(ETH_P_TEB)) {
-		struct ethhdr *eth;
+	if (type == htons(ETH_P_TEB))
+	{
+		struct ethhdr* eth;
 
 		if (unlikely(!pskb_may_pull(skb, sizeof(struct ethhdr))))
 			return 0;
 
-		eth = (struct ethhdr *)skb->data;
+		eth = (struct ethhdr*)skb->data;
 		type = eth->h_proto;
 	}
 
@@ -3312,11 +3249,10 @@ __be16 skb_network_protocol(struct sk_buff *skb, int *depth)
  *	@skb: buffer to segment
  *	@features: features for the output path (see dev->features)
  */
-struct sk_buff *skb_mac_gso_segment(struct sk_buff *skb,
-				    netdev_features_t features)
+struct sk_buff* skb_mac_gso_segment(struct sk_buff* skb, netdev_features_t features)
 {
-	struct sk_buff *segs = ERR_PTR(-EPROTONOSUPPORT);
-	struct packet_offload *ptype;
+	struct sk_buff* segs = ERR_PTR(-EPROTONOSUPPORT);
+	struct packet_offload* ptype;
 	int vlan_depth = skb->mac_len;
 	__be16 type = skb_network_protocol(skb, &vlan_depth);
 
@@ -3326,8 +3262,10 @@ struct sk_buff *skb_mac_gso_segment(struct sk_buff *skb,
 	__skb_pull(skb, vlan_depth);
 
 	rcu_read_lock();
-	list_for_each_entry_rcu(ptype, &offload_base, list) {
-		if (ptype->type == type && ptype->callbacks.gso_segment) {
+	list_for_each_entry_rcu(ptype, &offload_base, list)
+	{
+		if (ptype->type == type && ptype->callbacks.gso_segment)
+		{
 			segs = ptype->callbacks.gso_segment(skb, features);
 			break;
 		}
@@ -3340,14 +3278,12 @@ struct sk_buff *skb_mac_gso_segment(struct sk_buff *skb,
 }
 EXPORT_SYMBOL(skb_mac_gso_segment);
 
-
 /* openvswitch calls this on rx path, so we need a different check.
  */
-static inline bool skb_needs_check(struct sk_buff *skb, bool tx_path)
+static inline bool skb_needs_check(struct sk_buff* skb, bool tx_path)
 {
 	if (tx_path)
-		return skb->ip_summed != CHECKSUM_PARTIAL &&
-		       skb->ip_summed != CHECKSUM_UNNECESSARY;
+		return skb->ip_summed != CHECKSUM_PARTIAL && skb->ip_summed != CHECKSUM_UNNECESSARY;
 
 	return skb->ip_summed == CHECKSUM_NONE;
 }
@@ -3365,12 +3301,12 @@ static inline bool skb_needs_check(struct sk_buff *skb, bool tx_path)
  *
  *	Segmentation preserves SKB_GSO_CB_OFFSET bytes of previous skb cb.
  */
-struct sk_buff *__skb_gso_segment(struct sk_buff *skb,
-				  netdev_features_t features, bool tx_path)
+struct sk_buff* __skb_gso_segment(struct sk_buff* skb, netdev_features_t features, bool tx_path)
 {
-	struct sk_buff *segs;
+	struct sk_buff* segs;
 
-	if (unlikely(skb_needs_check(skb, tx_path))) {
+	if (unlikely(skb_needs_check(skb, tx_path)))
+	{
 		int err;
 
 		/* We're going to init ->check field in TCP or UDP header */
@@ -3383,17 +3319,17 @@ struct sk_buff *__skb_gso_segment(struct sk_buff *skb,
 	 * support segmentation on this frame without needing additional
 	 * work.
 	 */
-	if (features & NETIF_F_GSO_PARTIAL) {
+	if (features & NETIF_F_GSO_PARTIAL)
+	{
 		netdev_features_t partial_features = NETIF_F_GSO_ROBUST;
-		struct net_device *dev = skb->dev;
+		struct net_device* dev = skb->dev;
 
 		partial_features |= dev->features & dev->gso_partial_features;
 		if (!skb_gso_ok(skb, features | partial_features))
 			features &= ~NETIF_F_GSO_PARTIAL;
 	}
 
-	BUILD_BUG_ON(SKB_GSO_CB_OFFSET +
-		     sizeof(*SKB_GSO_CB(skb)) > sizeof(skb->cb));
+	BUILD_BUG_ON(SKB_GSO_CB_OFFSET + sizeof(*SKB_GSO_CB(skb)) > sizeof(skb->cb));
 
 	SKB_GSO_CB(skb)->mac_offset = skb_headroom(skb);
 	SKB_GSO_CB(skb)->encap_level = 0;
@@ -3412,14 +3348,14 @@ EXPORT_SYMBOL(__skb_gso_segment);
 
 /* Take action when hardware reception checksum errors are detected. */
 #ifdef CONFIG_BUG
-static void do_netdev_rx_csum_fault(struct net_device *dev, struct sk_buff *skb)
+static void do_netdev_rx_csum_fault(struct net_device* dev, struct sk_buff* skb)
 {
 	pr_err("%s: hw csum failure\n", dev ? dev->name : "<unknown>");
 	skb_dump(KERN_ERR, skb, true);
 	dump_stack();
 }
 
-void netdev_rx_csum_fault(struct net_device *dev, struct sk_buff *skb)
+void netdev_rx_csum_fault(struct net_device* dev, struct sk_buff* skb)
 {
 	DO_ONCE_LITE(do_netdev_rx_csum_fault, dev, skb);
 }
@@ -3427,14 +3363,16 @@ EXPORT_SYMBOL(netdev_rx_csum_fault);
 #endif
 
 /* XXX: check that highmem exists at all on the given machine. */
-static int illegal_highdma(struct net_device *dev, struct sk_buff *skb)
+static int illegal_highdma(struct net_device* dev, struct sk_buff* skb)
 {
 #ifdef CONFIG_HIGHMEM
 	int i;
 
-	if (!(dev->features & NETIF_F_HIGHDMA)) {
-		for (i = 0; i < skb_shinfo(skb)->nr_frags; i++) {
-			skb_frag_t *frag = &skb_shinfo(skb)->frags[i];
+	if (!(dev->features & NETIF_F_HIGHDMA))
+	{
+		for (i = 0; i < skb_shinfo(skb)->nr_frags; i++)
+		{
+			skb_frag_t* frag = &skb_shinfo(skb)->frags[i];
 
 			if (PageHighMem(skb_frag_page(frag)))
 				return 1;
@@ -3448,9 +3386,7 @@ static int illegal_highdma(struct net_device *dev, struct sk_buff *skb)
  * instead of standard features for the netdev.
  */
 #if IS_ENABLED(CONFIG_NET_MPLS_GSO)
-static netdev_features_t net_mpls_features(struct sk_buff *skb,
-					   netdev_features_t features,
-					   __be16 type)
+static netdev_features_t net_mpls_features(struct sk_buff* skb, netdev_features_t features, __be16 type)
 {
 	if (eth_p_mpls(type))
 		features &= skb->dev->mpls_features;
@@ -3458,24 +3394,21 @@ static netdev_features_t net_mpls_features(struct sk_buff *skb,
 	return features;
 }
 #else
-static netdev_features_t net_mpls_features(struct sk_buff *skb,
-					   netdev_features_t features,
-					   __be16 type)
+static netdev_features_t net_mpls_features(struct sk_buff* skb, netdev_features_t features, __be16 type)
 {
 	return features;
 }
 #endif
 
-static netdev_features_t harmonize_features(struct sk_buff *skb,
-	netdev_features_t features)
+static netdev_features_t harmonize_features(struct sk_buff* skb, netdev_features_t features)
 {
 	__be16 type;
 
 	type = skb_network_protocol(skb, NULL);
 	features = net_mpls_features(skb, features, type);
 
-	if (skb->ip_summed != CHECKSUM_NONE &&
-	    !can_checksum_protocol(features, type)) {
+	if (skb->ip_summed != CHECKSUM_NONE && !can_checksum_protocol(features, type))
+	{
 		features &= ~(NETIF_F_CSUM_MASK | NETIF_F_GSO_MASK);
 	}
 	if (illegal_highdma(skb->dev, skb))
@@ -3484,31 +3417,26 @@ static netdev_features_t harmonize_features(struct sk_buff *skb,
 	return features;
 }
 
-netdev_features_t passthru_features_check(struct sk_buff *skb,
-					  struct net_device *dev,
-					  netdev_features_t features)
+netdev_features_t passthru_features_check(struct sk_buff* skb, struct net_device* dev, netdev_features_t features)
 {
 	return features;
 }
 EXPORT_SYMBOL(passthru_features_check);
 
-static netdev_features_t dflt_features_check(struct sk_buff *skb,
-					     struct net_device *dev,
-					     netdev_features_t features)
+static netdev_features_t dflt_features_check(struct sk_buff* skb, struct net_device* dev, netdev_features_t features)
 {
 	return vlan_features_check(skb, features);
 }
 
-static netdev_features_t gso_features_check(const struct sk_buff *skb,
-					    struct net_device *dev,
-					    netdev_features_t features)
+static netdev_features_t gso_features_check(const struct sk_buff* skb, struct net_device* dev, netdev_features_t features)
 {
 	u16 gso_segs = skb_shinfo(skb)->gso_segs;
 
 	if (gso_segs > dev->gso_max_segs)
 		return features & ~NETIF_F_GSO_MASK;
 
-	if (!skb_shinfo(skb)->gso_type) {
+	if (!skb_shinfo(skb)->gso_type)
+	{
 		skb_warn_bad_offload(skb);
 		return features & ~NETIF_F_GSO_MASK;
 	}
@@ -3525,9 +3453,9 @@ static netdev_features_t gso_features_check(const struct sk_buff *skb,
 	/* Make sure to clear the IPv4 ID mangling feature if the
 	 * IPv4 header has the potential to be fragmented.
 	 */
-	if (skb_shinfo(skb)->gso_type & SKB_GSO_TCPV4) {
-		struct iphdr *iph = skb->encapsulation ?
-				    inner_ip_hdr(skb) : ip_hdr(skb);
+	if (skb_shinfo(skb)->gso_type & SKB_GSO_TCPV4)
+	{
+		struct iphdr* iph = skb->encapsulation ? inner_ip_hdr(skb) : ip_hdr(skb);
 
 		if (!(iph->frag_off & htons(IP_DF)))
 			features &= ~NETIF_F_TSO_MANGLEID;
@@ -3536,9 +3464,9 @@ static netdev_features_t gso_features_check(const struct sk_buff *skb,
 	return features;
 }
 
-netdev_features_t netif_skb_features(struct sk_buff *skb)
+netdev_features_t netif_skb_features(struct sk_buff* skb)
 {
-	struct net_device *dev = skb->dev;
+	struct net_device* dev = skb->dev;
 	netdev_features_t features = dev->features;
 
 	if (skb_is_gso(skb))
@@ -3552,14 +3480,10 @@ netdev_features_t netif_skb_features(struct sk_buff *skb)
 		features &= dev->hw_enc_features;
 
 	if (skb_vlan_tagged(skb))
-		features = netdev_intersect_features(features,
-						     dev->vlan_features |
-						     NETIF_F_HW_VLAN_CTAG_TX |
-						     NETIF_F_HW_VLAN_STAG_TX);
+		features = netdev_intersect_features(features, dev->vlan_features | NETIF_F_HW_VLAN_CTAG_TX | NETIF_F_HW_VLAN_STAG_TX);
 
 	if (dev->netdev_ops->ndo_features_check)
-		features &= dev->netdev_ops->ndo_features_check(skb, dev,
-								features);
+		features &= dev->netdev_ops->ndo_features_check(skb, dev, features);
 	else
 		features &= dflt_features_check(skb, dev, features);
 
@@ -3567,8 +3491,7 @@ netdev_features_t netif_skb_features(struct sk_buff *skb)
 }
 EXPORT_SYMBOL(netif_skb_features);
 
-static int xmit_one(struct sk_buff *skb, struct net_device *dev,
-		    struct netdev_queue *txq, bool more)
+static int xmit_one(struct sk_buff* skb, struct net_device* dev, struct netdev_queue* txq, bool more)
 {
 	unsigned int len;
 	int rc;
@@ -3585,24 +3508,26 @@ static int xmit_one(struct sk_buff *skb, struct net_device *dev,
 	return rc;
 }
 
-struct sk_buff *dev_hard_start_xmit(struct sk_buff *first, struct net_device *dev,
-				    struct netdev_queue *txq, int *ret)
+struct sk_buff* dev_hard_start_xmit(struct sk_buff* first, struct net_device* dev, struct netdev_queue* txq, int* ret)
 {
-	struct sk_buff *skb = first;
+	struct sk_buff* skb = first;
 	int rc = NETDEV_TX_OK;
 
-	while (skb) {
-		struct sk_buff *next = skb->next;
+	while (skb)
+	{
+		struct sk_buff* next = skb->next;
 
 		skb_mark_not_on_list(skb);
 		rc = xmit_one(skb, dev, txq, next != NULL);
-		if (unlikely(!dev_xmit_complete(rc))) {
+		if (unlikely(!dev_xmit_complete(rc)))
+		{
 			skb->next = next;
 			goto out;
 		}
 
 		skb = next;
-		if (netif_tx_queue_stopped(txq) && skb) {
+		if (netif_tx_queue_stopped(txq) && skb)
+		{
 			rc = NETDEV_TX_BUSY;
 			break;
 		}
@@ -3613,27 +3538,25 @@ out:
 	return skb;
 }
 
-static struct sk_buff *validate_xmit_vlan(struct sk_buff *skb,
-					  netdev_features_t features)
+static struct sk_buff* validate_xmit_vlan(struct sk_buff* skb, netdev_features_t features)
 {
-	if (skb_vlan_tag_present(skb) &&
-	    !vlan_hw_offload_capable(features, skb->vlan_proto))
+	if (skb_vlan_tag_present(skb) && !vlan_hw_offload_capable(features, skb->vlan_proto))
 		skb = __vlan_hwaccel_push_inside(skb);
 	return skb;
 }
 
-int skb_csum_hwoffload_help(struct sk_buff *skb,
-			    const netdev_features_t features)
+int skb_csum_hwoffload_help(struct sk_buff* skb, const netdev_features_t features)
 {
 	if (unlikely(skb_csum_is_sctp(skb)))
-		return !!(features & NETIF_F_SCTP_CRC) ? 0 :
-			skb_crc32c_csum_help(skb);
+		return !!(features & NETIF_F_SCTP_CRC) ? 0 : skb_crc32c_csum_help(skb);
 
 	if (features & NETIF_F_HW_CSUM)
 		return 0;
 
-	if (features & (NETIF_F_IP_CSUM | NETIF_F_IPV6_CSUM)) {
-		switch (skb->csum_offset) {
+	if (features & (NETIF_F_IP_CSUM | NETIF_F_IPV6_CSUM))
+	{
+		switch (skb->csum_offset)
+		{
 		case offsetof(struct tcphdr, check):
 		case offsetof(struct udphdr, check):
 			return 0;
@@ -3644,7 +3567,7 @@ int skb_csum_hwoffload_help(struct sk_buff *skb,
 }
 EXPORT_SYMBOL(skb_csum_hwoffload_help);
 
-static struct sk_buff *validate_xmit_skb(struct sk_buff *skb, struct net_device *dev, bool *again)
+static struct sk_buff* validate_xmit_skb(struct sk_buff* skb, struct net_device* dev, bool* again)
 {
 	netdev_features_t features;
 
@@ -3657,32 +3580,36 @@ static struct sk_buff *validate_xmit_skb(struct sk_buff *skb, struct net_device 
 	if (unlikely(!skb))
 		goto out_null;
 
-	if (netif_needs_gso(skb, features)) {
-		struct sk_buff *segs;
+	if (netif_needs_gso(skb, features))
+	{
+		struct sk_buff* segs;
 
 		segs = skb_gso_segment(skb, features);
-		if (IS_ERR(segs)) {
+		if (IS_ERR(segs))
+		{
 			goto out_kfree_skb;
-		} else if (segs) {
+		}
+		else if (segs)
+		{
 			consume_skb(skb);
 			skb = segs;
 		}
-	} else {
-		if (skb_needs_linearize(skb, features) &&
-		    __skb_linearize(skb))
+	}
+	else
+	{
+		if (skb_needs_linearize(skb, features) && __skb_linearize(skb))
 			goto out_kfree_skb;
 
 		/* If packet is not checksummed and device does not
 		 * support checksumming for this protocol, complete
 		 * checksumming here.
 		 */
-		if (skb->ip_summed == CHECKSUM_PARTIAL) {
+		if (skb->ip_summed == CHECKSUM_PARTIAL)
+		{
 			if (skb->encapsulation)
-				skb_set_inner_transport_header(skb,
-							       skb_checksum_start_offset(skb));
+				skb_set_inner_transport_header(skb, skb_checksum_start_offset(skb));
 			else
-				skb_set_transport_header(skb,
-							 skb_checksum_start_offset(skb));
+				skb_set_transport_header(skb, skb_checksum_start_offset(skb));
 			if (skb_csum_hwoffload_help(skb, features))
 				goto out_kfree_skb;
 		}
@@ -3699,11 +3626,12 @@ out_null:
 	return NULL;
 }
 
-struct sk_buff *validate_xmit_skb_list(struct sk_buff *skb, struct net_device *dev, bool *again)
+struct sk_buff* validate_xmit_skb_list(struct sk_buff* skb, struct net_device* dev, bool* again)
 {
 	struct sk_buff *next, *head = NULL, *tail;
 
-	for (; skb != NULL; skb = next) {
+	for (; skb != NULL; skb = next)
+	{
 		next = skb->next;
 		skb_mark_not_on_list(skb);
 
@@ -3727,16 +3655,17 @@ struct sk_buff *validate_xmit_skb_list(struct sk_buff *skb, struct net_device *d
 }
 EXPORT_SYMBOL_GPL(validate_xmit_skb_list);
 
-static void qdisc_pkt_len_init(struct sk_buff *skb)
+static void qdisc_pkt_len_init(struct sk_buff* skb)
 {
-	const struct skb_shared_info *shinfo = skb_shinfo(skb);
+	const struct skb_shared_info* shinfo = skb_shinfo(skb);
 
 	qdisc_skb_cb(skb)->pkt_len = skb->len;
 
 	/* To get more precise estimation of bytes sent on wire,
 	 * we add to pkt_len the headers size of all segments
 	 */
-	if (shinfo->gso_size && skb_transport_header_was_set(skb)) {
+	if (shinfo->gso_size && skb_transport_header_was_set(skb))
+	{
 		unsigned int hdr_len;
 		u16 gso_segs = shinfo->gso_segs;
 
@@ -3744,33 +3673,31 @@ static void qdisc_pkt_len_init(struct sk_buff *skb)
 		hdr_len = skb_transport_header(skb) - skb_mac_header(skb);
 
 		/* + transport layer */
-		if (likely(shinfo->gso_type & (SKB_GSO_TCPV4 | SKB_GSO_TCPV6))) {
-			const struct tcphdr *th;
+		if (likely(shinfo->gso_type & (SKB_GSO_TCPV4 | SKB_GSO_TCPV6)))
+		{
+			const struct tcphdr* th;
 			struct tcphdr _tcphdr;
 
-			th = skb_header_pointer(skb, skb_transport_offset(skb),
-						sizeof(_tcphdr), &_tcphdr);
+			th = skb_header_pointer(skb, skb_transport_offset(skb), sizeof(_tcphdr), &_tcphdr);
 			if (likely(th))
 				hdr_len += __tcp_hdrlen(th);
-		} else {
+		}
+		else
+		{
 			struct udphdr _udphdr;
 
-			if (skb_header_pointer(skb, skb_transport_offset(skb),
-					       sizeof(_udphdr), &_udphdr))
+			if (skb_header_pointer(skb, skb_transport_offset(skb), sizeof(_udphdr), &_udphdr))
 				hdr_len += sizeof(struct udphdr);
 		}
 
 		if (shinfo->gso_type & SKB_GSO_DODGY)
-			gso_segs = DIV_ROUND_UP(skb->len - hdr_len,
-						shinfo->gso_size);
+			gso_segs = DIV_ROUND_UP(skb->len - hdr_len, shinfo->gso_size);
 
 		qdisc_skb_cb(skb)->pkt_len += (gso_segs - 1) * hdr_len;
 	}
 }
 
-static int dev_qdisc_enqueue(struct sk_buff *skb, struct Qdisc *q,
-			     struct sk_buff **to_free,
-			     struct netdev_queue *txq)
+static int dev_qdisc_enqueue(struct sk_buff* skb, struct Qdisc* q, struct sk_buff** to_free, struct netdev_queue* txq)
 {
 	int rc;
 
@@ -3780,24 +3707,24 @@ static int dev_qdisc_enqueue(struct sk_buff *skb, struct Qdisc *q,
 	return rc;
 }
 
-static inline int __dev_xmit_skb(struct sk_buff *skb, struct Qdisc *q,
-				 struct net_device *dev,
-				 struct netdev_queue *txq)
+static inline int __dev_xmit_skb(struct sk_buff* skb, struct Qdisc* q, struct net_device* dev, struct netdev_queue* txq)
 {
-	spinlock_t *root_lock = qdisc_lock(q);
-	struct sk_buff *to_free = NULL;
+	spinlock_t* root_lock = qdisc_lock(q);
+	struct sk_buff* to_free = NULL;
 	bool contended;
 	int rc;
 
 	qdisc_calculate_pkt_len(skb, q);
 
-	if (q->flags & TCQ_F_NOLOCK) {
-		if (q->flags & TCQ_F_CAN_BYPASS && nolock_qdisc_is_empty(q) &&
-		    qdisc_run_begin(q)) {
+	if (q->flags & TCQ_F_NOLOCK)
+	{
+		if (q->flags & TCQ_F_CAN_BYPASS && nolock_qdisc_is_empty(q) && qdisc_run_begin(q))
+		{
 			/* Retest nolock_qdisc_is_empty() within the protection
 			 * of q->seqlock to protect from racing with requeuing.
 			 */
-			if (unlikely(!nolock_qdisc_is_empty(q))) {
+			if (unlikely(!nolock_qdisc_is_empty(q)))
+			{
 				rc = dev_qdisc_enqueue(skb, q, &to_free, txq);
 				__qdisc_run(q);
 				qdisc_run_end(q);
@@ -3806,8 +3733,7 @@ static inline int __dev_xmit_skb(struct sk_buff *skb, struct Qdisc *q,
 			}
 
 			qdisc_bstats_cpu_update(q, skb);
-			if (sch_direct_xmit(skb, q, dev, txq, NULL, true) &&
-			    !nolock_qdisc_is_empty(q))
+			if (sch_direct_xmit(skb, q, dev, txq, NULL, true) && !nolock_qdisc_is_empty(q))
 				__qdisc_run(q);
 
 			qdisc_run_end(q);
@@ -3817,7 +3743,7 @@ static inline int __dev_xmit_skb(struct sk_buff *skb, struct Qdisc *q,
 		rc = dev_qdisc_enqueue(skb, q, &to_free, txq);
 		qdisc_run(q);
 
-no_lock_out:
+	no_lock_out:
 		if (unlikely(to_free))
 			kfree_skb_list(to_free);
 		return rc;
@@ -3834,11 +3760,13 @@ no_lock_out:
 		spin_lock(&q->busylock);
 
 	spin_lock(root_lock);
-	if (unlikely(test_bit(__QDISC_STATE_DEACTIVATED, &q->state))) {
+	if (unlikely(test_bit(__QDISC_STATE_DEACTIVATED, &q->state)))
+	{
 		__qdisc_drop(skb, &to_free);
 		rc = NET_XMIT_DROP;
-	} else if ((q->flags & TCQ_F_CAN_BYPASS) && !qdisc_qlen(q) &&
-		   qdisc_run_begin(q)) {
+	}
+	else if ((q->flags & TCQ_F_CAN_BYPASS) && !qdisc_qlen(q) && qdisc_run_begin(q))
+	{
 		/*
 		 * This is a work-conserving queue; there are no old skbs
 		 * waiting to be sent out; and the qdisc is not running -
@@ -3847,8 +3775,10 @@ no_lock_out:
 
 		qdisc_bstats_update(q, skb);
 
-		if (sch_direct_xmit(skb, q, dev, txq, root_lock, true)) {
-			if (unlikely(contended)) {
+		if (sch_direct_xmit(skb, q, dev, txq, root_lock, true))
+		{
+			if (unlikely(contended))
+			{
 				spin_unlock(&q->busylock);
 				contended = false;
 			}
@@ -3857,10 +3787,14 @@ no_lock_out:
 
 		qdisc_run_end(q);
 		rc = NET_XMIT_SUCCESS;
-	} else {
+	}
+	else
+	{
 		rc = dev_qdisc_enqueue(skb, q, &to_free, txq);
-		if (qdisc_run_begin(q)) {
-			if (unlikely(contended)) {
+		if (qdisc_run_begin(q))
+		{
+			if (unlikely(contended))
+			{
 				spin_unlock(&q->busylock);
 				contended = false;
 			}
@@ -3877,10 +3811,10 @@ no_lock_out:
 }
 
 #if IS_ENABLED(CONFIG_CGROUP_NET_PRIO)
-static void skb_update_prio(struct sk_buff *skb)
+static void skb_update_prio(struct sk_buff* skb)
 {
-	const struct netprio_map *map;
-	const struct sock *sk;
+	const struct netprio_map* map;
+	const struct sock* sk;
 	unsigned int prioidx;
 
 	if (skb->priority)
@@ -3907,7 +3841,7 @@ static void skb_update_prio(struct sk_buff *skb)
  *	@sk:  sk needed to be a netfilter okfn
  *	@skb: buffer to transmit
  */
-int dev_loopback_xmit(struct net *net, struct sock *sk, struct sk_buff *skb)
+int dev_loopback_xmit(struct net* net, struct sock* sk, struct sk_buff* skb)
 {
 	skb_reset_mac_header(skb);
 	__skb_pull(skb, skb_network_offset(skb));
@@ -3922,10 +3856,9 @@ int dev_loopback_xmit(struct net *net, struct sock *sk, struct sk_buff *skb)
 EXPORT_SYMBOL(dev_loopback_xmit);
 
 #ifdef CONFIG_NET_EGRESS
-static struct sk_buff *
-sch_handle_egress(struct sk_buff *skb, int *ret, struct net_device *dev)
+static struct sk_buff* sch_handle_egress(struct sk_buff* skb, int* ret, struct net_device* dev)
 {
-	struct mini_Qdisc *miniq = rcu_dereference_bh(dev->miniq_egress);
+	struct mini_Qdisc* miniq = rcu_dereference_bh(dev->miniq_egress);
 	struct tcf_result cl_res;
 
 	if (!miniq)
@@ -3936,7 +3869,8 @@ sch_handle_egress(struct sk_buff *skb, int *ret, struct net_device *dev)
 	qdisc_skb_cb(skb)->post_ct = false;
 	mini_qdisc_bstats_cpu_update(miniq, skb);
 
-	switch (tcf_classify(skb, miniq->block, miniq->filter_list, &cl_res, false)) {
+	switch (tcf_classify(skb, miniq->block, miniq->filter_list, &cl_res, false))
+	{
 	case TC_ACT_OK:
 	case TC_ACT_RECLASSIFY:
 		skb->tc_index = TC_H_MIN(cl_res.classid);
@@ -3966,11 +3900,10 @@ sch_handle_egress(struct sk_buff *skb, int *ret, struct net_device *dev)
 #endif /* CONFIG_NET_EGRESS */
 
 #ifdef CONFIG_XPS
-static int __get_xps_queue_idx(struct net_device *dev, struct sk_buff *skb,
-			       struct xps_dev_maps *dev_maps, unsigned int tci)
+static int __get_xps_queue_idx(struct net_device* dev, struct sk_buff* skb, struct xps_dev_maps* dev_maps, unsigned int tci)
 {
 	int tc = netdev_get_prio_tc_map(dev, skb->priority);
-	struct xps_map *map;
+	struct xps_map* map;
 	int queue_index = -1;
 
 	if (tc >= dev_maps->num_tc || tci >= dev_maps->nr_ids)
@@ -3980,12 +3913,12 @@ static int __get_xps_queue_idx(struct net_device *dev, struct sk_buff *skb,
 	tci += tc;
 
 	map = rcu_dereference(dev_maps->attr_map[tci]);
-	if (map) {
+	if (map)
+	{
 		if (map->len == 1)
 			queue_index = map->queues[0];
 		else
-			queue_index = map->queues[reciprocal_scale(
-						skb_get_hash(skb), map->len)];
+			queue_index = map->queues[reciprocal_scale(skb_get_hash(skb), map->len)];
 		if (unlikely(queue_index >= dev->real_num_tx_queues))
 			queue_index = -1;
 	}
@@ -3993,12 +3926,11 @@ static int __get_xps_queue_idx(struct net_device *dev, struct sk_buff *skb,
 }
 #endif
 
-static int get_xps_queue(struct net_device *dev, struct net_device *sb_dev,
-			 struct sk_buff *skb)
+static int get_xps_queue(struct net_device* dev, struct net_device* sb_dev, struct sk_buff* skb)
 {
 #ifdef CONFIG_XPS
-	struct xps_dev_maps *dev_maps;
-	struct sock *sk = skb->sk;
+	struct xps_dev_maps* dev_maps;
+	struct sock* sk = skb->sk;
 	int queue_index = -1;
 
 	if (!static_key_false(&xps_needed))
@@ -4009,22 +3941,23 @@ static int get_xps_queue(struct net_device *dev, struct net_device *sb_dev,
 		goto get_cpus_map;
 
 	dev_maps = rcu_dereference(sb_dev->xps_maps[XPS_RXQS]);
-	if (dev_maps) {
+	if (dev_maps)
+	{
 		int tci = sk_rx_queue_get(sk);
 
 		if (tci >= 0)
-			queue_index = __get_xps_queue_idx(dev, skb, dev_maps,
-							  tci);
+			queue_index = __get_xps_queue_idx(dev, skb, dev_maps, tci);
 	}
 
 get_cpus_map:
-	if (queue_index < 0) {
+	if (queue_index < 0)
+	{
 		dev_maps = rcu_dereference(sb_dev->xps_maps[XPS_CPUS]);
-		if (dev_maps) {
+		if (dev_maps)
+		{
 			unsigned int tci = skb->sender_cpu - 1;
 
-			queue_index = __get_xps_queue_idx(dev, skb, dev_maps,
-							  tci);
+			queue_index = __get_xps_queue_idx(dev, skb, dev_maps, tci);
 		}
 	}
 	rcu_read_unlock();
@@ -4035,38 +3968,33 @@ get_cpus_map:
 #endif
 }
 
-u16 dev_pick_tx_zero(struct net_device *dev, struct sk_buff *skb,
-		     struct net_device *sb_dev)
+u16 dev_pick_tx_zero(struct net_device* dev, struct sk_buff* skb, struct net_device* sb_dev)
 {
 	return 0;
 }
 EXPORT_SYMBOL(dev_pick_tx_zero);
 
-u16 dev_pick_tx_cpu_id(struct net_device *dev, struct sk_buff *skb,
-		       struct net_device *sb_dev)
+u16 dev_pick_tx_cpu_id(struct net_device* dev, struct sk_buff* skb, struct net_device* sb_dev)
 {
 	return (u16)raw_smp_processor_id() % dev->real_num_tx_queues;
 }
 EXPORT_SYMBOL(dev_pick_tx_cpu_id);
 
-u16 netdev_pick_tx(struct net_device *dev, struct sk_buff *skb,
-		     struct net_device *sb_dev)
+u16 netdev_pick_tx(struct net_device* dev, struct sk_buff* skb, struct net_device* sb_dev)
 {
-	struct sock *sk = skb->sk;
+	struct sock* sk = skb->sk;
 	int queue_index = sk_tx_queue_get(sk);
 
-	sb_dev = sb_dev ? : dev;
+	sb_dev = sb_dev ?: dev;
 
-	if (queue_index < 0 || skb->ooo_okay ||
-	    queue_index >= dev->real_num_tx_queues) {
+	if (queue_index < 0 || skb->ooo_okay || queue_index >= dev->real_num_tx_queues)
+	{
 		int new_index = get_xps_queue(dev, sb_dev, skb);
 
 		if (new_index < 0)
 			new_index = skb_tx_hash(dev, sb_dev, skb);
 
-		if (queue_index != new_index && sk &&
-		    sk_fullsock(sk) &&
-		    rcu_access_pointer(sk->sk_dst_cache))
+		if (queue_index != new_index && sk && sk_fullsock(sk) && rcu_access_pointer(sk->sk_dst_cache))
 			sk_tx_queue_set(sk, new_index);
 
 		queue_index = new_index;
@@ -4076,9 +4004,7 @@ u16 netdev_pick_tx(struct net_device *dev, struct sk_buff *skb,
 }
 EXPORT_SYMBOL(netdev_pick_tx);
 
-struct netdev_queue *netdev_core_pick_tx(struct net_device *dev,
-					 struct sk_buff *skb,
-					 struct net_device *sb_dev)
+struct netdev_queue* netdev_core_pick_tx(struct net_device* dev, struct sk_buff* skb, struct net_device* sb_dev)
 {
 	int queue_index = 0;
 
@@ -4089,8 +4015,9 @@ struct netdev_queue *netdev_core_pick_tx(struct net_device *dev,
 		skb->sender_cpu = raw_smp_processor_id() + 1;
 #endif
 
-	if (dev->real_num_tx_queues != 1) {
-		const struct net_device_ops *ops = dev->netdev_ops;
+	if (dev->real_num_tx_queues != 1)
+	{
+		const struct net_device_ops* ops = dev->netdev_ops;
 
 		if (ops->ndo_select_queue)
 			queue_index = ops->ndo_select_queue(dev, skb, sb_dev);
@@ -4130,11 +4057,11 @@ struct netdev_queue *netdev_core_pick_tx(struct net_device *dev,
  *      the BH enable code must have IRQs enabled so that it will not deadlock.
  *          --BLG
  */
-static int __dev_queue_xmit(struct sk_buff *skb, struct net_device *sb_dev)
+static int __dev_queue_xmit(struct sk_buff* skb, struct net_device* sb_dev)
 {
-	struct net_device *dev = skb->dev;
-	struct netdev_queue *txq;
-	struct Qdisc *q;
+	struct net_device* dev = skb->dev;
+	struct netdev_queue* txq;
+	struct Qdisc* q;
 	int rc = -ENOMEM;
 	bool again = false;
 
@@ -4153,13 +4080,14 @@ static int __dev_queue_xmit(struct sk_buff *skb, struct net_device *sb_dev)
 	qdisc_pkt_len_init(skb);
 #ifdef CONFIG_NET_CLS_ACT
 	skb->tc_at_ingress = 0;
-# ifdef CONFIG_NET_EGRESS
-	if (static_branch_unlikely(&egress_needed_key)) {
+#ifdef CONFIG_NET_EGRESS
+	if (static_branch_unlikely(&egress_needed_key))
+	{
 		skb = sch_handle_egress(skb, &rc, dev);
 		if (!skb)
 			goto out;
 	}
-# endif
+#endif
 #endif
 	/* If device/qdisc don't need skb->dst, release it right now while
 	 * its hot in this cpu cache.
@@ -4173,7 +4101,8 @@ static int __dev_queue_xmit(struct sk_buff *skb, struct net_device *sb_dev)
 	q = rcu_dereference_bh(txq->qdisc);
 
 	trace_net_dev_queue(skb);
-	if (q->enqueue) {
+	if (q->enqueue)
+	{
 		rc = __dev_xmit_skb(skb, q, dev, txq);
 		goto out;
 	}
@@ -4190,10 +4119,12 @@ static int __dev_queue_xmit(struct sk_buff *skb, struct net_device *sb_dev)
 	 * Check this and shot the lock. It is not prone from deadlocks.
 	 *Either shot noqueue qdisc, it is even simpler 8)
 	 */
-	if (dev->flags & IFF_UP) {
+	if (dev->flags & IFF_UP)
+	{
 		int cpu = smp_processor_id(); /* ok because BHs are off */
 
-		if (txq->xmit_lock_owner != cpu) {
+		if (txq->xmit_lock_owner != cpu)
+		{
 			if (dev_xmit_recursion())
 				goto recursion_alert;
 
@@ -4204,25 +4135,27 @@ static int __dev_queue_xmit(struct sk_buff *skb, struct net_device *sb_dev)
 			PRANDOM_ADD_NOISE(skb, dev, txq, jiffies);
 			HARD_TX_LOCK(dev, txq, cpu);
 
-			if (!netif_xmit_stopped(txq)) {
+			if (!netif_xmit_stopped(txq))
+			{
 				dev_xmit_recursion_inc();
 				skb = dev_hard_start_xmit(skb, dev, txq, &rc);
 				dev_xmit_recursion_dec();
-				if (dev_xmit_complete(rc)) {
+				if (dev_xmit_complete(rc))
+				{
 					HARD_TX_UNLOCK(dev, txq);
 					goto out;
 				}
 			}
 			HARD_TX_UNLOCK(dev, txq);
-			net_crit_ratelimited("Virtual device %s asks to queue packet!\n",
-					     dev->name);
-		} else {
+			net_crit_ratelimited("Virtual device %s asks to queue packet!\n", dev->name);
+		}
+		else
+		{
 			/* Recursion is detected! It is possible,
 			 * unfortunately
 			 */
-recursion_alert:
-			net_crit_ratelimited("Dead loop on virtual device %s, fix it urgently!\n",
-					     dev->name);
+		recursion_alert:
+			net_crit_ratelimited("Dead loop on virtual device %s, fix it urgently!\n", dev->name);
 		}
 	}
 
@@ -4237,28 +4170,27 @@ out:
 	return rc;
 }
 
-int dev_queue_xmit(struct sk_buff *skb)
+int dev_queue_xmit(struct sk_buff* skb)
 {
 	return __dev_queue_xmit(skb, NULL);
 }
 EXPORT_SYMBOL(dev_queue_xmit);
 
-int dev_queue_xmit_accel(struct sk_buff *skb, struct net_device *sb_dev)
+int dev_queue_xmit_accel(struct sk_buff* skb, struct net_device* sb_dev)
 {
 	return __dev_queue_xmit(skb, sb_dev);
 }
 EXPORT_SYMBOL(dev_queue_xmit_accel);
 
-int __dev_direct_xmit(struct sk_buff *skb, u16 queue_id)
+int __dev_direct_xmit(struct sk_buff* skb, u16 queue_id)
 {
-	struct net_device *dev = skb->dev;
-	struct sk_buff *orig_skb = skb;
-	struct netdev_queue *txq;
+	struct net_device* dev = skb->dev;
+	struct sk_buff* orig_skb = skb;
+	struct netdev_queue* txq;
 	int ret = NETDEV_TX_BUSY;
 	bool again = false;
 
-	if (unlikely(!netif_running(dev) ||
-		     !netif_carrier_ok(dev)))
+	if (unlikely(!netif_running(dev) || !netif_carrier_ok(dev)))
 		goto drop;
 
 	skb = validate_xmit_skb_list(skb, dev, &again);
@@ -4298,21 +4230,21 @@ int netdev_tstamp_prequeue __read_mostly = 1;
 int netdev_budget __read_mostly = 300;
 /* Must be at least 2 jiffes to guarantee 1 jiffy timeout */
 unsigned int __read_mostly netdev_budget_usecs = 2 * USEC_PER_SEC / HZ;
-int weight_p __read_mostly = 64;           /* old backlog weight */
-int dev_weight_rx_bias __read_mostly = 1;  /* bias for backlog weight */
-int dev_weight_tx_bias __read_mostly = 1;  /* bias for output_queue quota */
+int weight_p __read_mostly = 64;		  /* old backlog weight */
+int dev_weight_rx_bias __read_mostly = 1; /* bias for backlog weight */
+int dev_weight_tx_bias __read_mostly = 1; /* bias for output_queue quota */
 int dev_rx_weight __read_mostly = 64;
 int dev_tx_weight __read_mostly = 64;
 /* Maximum number of GRO_NORMAL skbs to batch up for list-RX */
 int gro_normal_batch __read_mostly = 8;
 
 /* Called with irq disabled */
-static inline void ____napi_schedule(struct softnet_data *sd,
-				     struct napi_struct *napi)
+static inline void ____napi_schedule(struct softnet_data* sd, struct napi_struct* napi)
 {
-	struct task_struct *thread;
+	struct task_struct* thread;
 
-	if (test_bit(NAPI_STATE_THREADED, &napi->state)) {
+	if (test_bit(NAPI_STATE_THREADED, &napi->state))
+	{
 		/* Paired with smp_mb__before_atomic() in
 		 * napi_enable()/dev_set_threaded().
 		 * Use READ_ONCE() to guarantee a complete
@@ -4320,7 +4252,8 @@ static inline void ____napi_schedule(struct softnet_data *sd,
 		 * wake_up_process() when it's not NULL.
 		 */
 		thread = READ_ONCE(napi->thread);
-		if (thread) {
+		if (thread)
+		{
 			/* Avoid doing set_bit() if the thread is in
 			 * INTERRUPTIBLE state, cause napi_thread_wait()
 			 * makes sure to proceed with napi polling
@@ -4340,7 +4273,7 @@ static inline void ____napi_schedule(struct softnet_data *sd,
 #ifdef CONFIG_RPS
 
 /* One global table that all flow-based protocols share. */
-struct rps_sock_flow_table __rcu *rps_sock_flow_table __read_mostly;
+struct rps_sock_flow_table __rcu* rps_sock_flow_table __read_mostly;
 EXPORT_SYMBOL(rps_sock_flow_table);
 u32 rps_cpu_mask __read_mostly;
 EXPORT_SYMBOL(rps_cpu_mask);
@@ -4350,22 +4283,20 @@ EXPORT_SYMBOL(rps_needed);
 struct static_key_false rfs_needed __read_mostly;
 EXPORT_SYMBOL(rfs_needed);
 
-static struct rps_dev_flow *
-set_rps_cpu(struct net_device *dev, struct sk_buff *skb,
-	    struct rps_dev_flow *rflow, u16 next_cpu)
+static struct rps_dev_flow* set_rps_cpu(struct net_device* dev, struct sk_buff* skb, struct rps_dev_flow* rflow, u16 next_cpu)
 {
-	if (next_cpu < nr_cpu_ids) {
+	if (next_cpu < nr_cpu_ids)
+	{
 #ifdef CONFIG_RFS_ACCEL
-		struct netdev_rx_queue *rxqueue;
-		struct rps_dev_flow_table *flow_table;
-		struct rps_dev_flow *old_rflow;
+		struct netdev_rx_queue* rxqueue;
+		struct rps_dev_flow_table* flow_table;
+		struct rps_dev_flow* old_rflow;
 		u32 flow_id;
 		u16 rxq_index;
 		int rc;
 
 		/* Should we steer this flow to a different hardware queue? */
-		if (!skb_rx_queue_recorded(skb) || !dev->rx_cpu_rmap ||
-		    !(dev->features & NETIF_F_NTUPLE))
+		if (!skb_rx_queue_recorded(skb) || !dev->rx_cpu_rmap || !(dev->features & NETIF_F_NTUPLE))
 			goto out;
 		rxq_index = cpu_rmap_lookup_index(dev->rx_cpu_rmap, next_cpu);
 		if (rxq_index == skb_get_rx_queue(skb))
@@ -4376,8 +4307,7 @@ set_rps_cpu(struct net_device *dev, struct sk_buff *skb,
 		if (!flow_table)
 			goto out;
 		flow_id = skb_get_hash(skb) & flow_table->mask;
-		rc = dev->netdev_ops->ndo_rx_flow_steer(dev, skb,
-							rxq_index, flow_id);
+		rc = dev->netdev_ops->ndo_rx_flow_steer(dev, skb, rxq_index, flow_id);
 		if (rc < 0)
 			goto out;
 		old_rflow = rflow;
@@ -4387,8 +4317,7 @@ set_rps_cpu(struct net_device *dev, struct sk_buff *skb,
 			old_rflow->filter = RPS_NO_FILTER;
 	out:
 #endif
-		rflow->last_qtail =
-			per_cpu(softnet_data, next_cpu).input_queue_head;
+		rflow->last_qtail = per_cpu(softnet_data, next_cpu).input_queue_head;
 	}
 
 	rflow->cpu = next_cpu;
@@ -4400,25 +4329,27 @@ set_rps_cpu(struct net_device *dev, struct sk_buff *skb,
  * CPU from the RPS map of the receiving queue for a given skb.
  * rcu_read_lock must be held on entry.
  */
-static int get_rps_cpu(struct net_device *dev, struct sk_buff *skb,
-		       struct rps_dev_flow **rflowp)
+static int get_rps_cpu(struct net_device* dev, struct sk_buff* skb, struct rps_dev_flow** rflowp)
 {
-	const struct rps_sock_flow_table *sock_flow_table;
-	struct netdev_rx_queue *rxqueue = dev->_rx;
-	struct rps_dev_flow_table *flow_table;
-	struct rps_map *map;
+	const struct rps_sock_flow_table* sock_flow_table;
+	struct netdev_rx_queue* rxqueue = dev->_rx;
+	struct rps_dev_flow_table* flow_table;
+	struct rps_map* map;
 	int cpu = -1;
 	u32 tcpu;
 	u32 hash;
 
-	if (skb_rx_queue_recorded(skb)) {
+	if (skb_rx_queue_recorded(skb))
+	{
 		u16 index = skb_get_rx_queue(skb);
 
-		if (unlikely(index >= dev->real_num_rx_queues)) {
-			WARN_ONCE(dev->real_num_rx_queues > 1,
-				  "%s received packet on queue %u, but number "
-				  "of RX queues is %u\n",
-				  dev->name, index, dev->real_num_rx_queues);
+		if (unlikely(index >= dev->real_num_rx_queues))
+		{
+			WARN_ONCE(
+				dev->real_num_rx_queues > 1,
+				"%s received packet on queue %u, but number "
+				"of RX queues is %u\n",
+				dev->name, index, dev->real_num_rx_queues);
 			goto done;
 		}
 		rxqueue += index;
@@ -4437,8 +4368,9 @@ static int get_rps_cpu(struct net_device *dev, struct sk_buff *skb,
 		goto done;
 
 	sock_flow_table = rcu_dereference(rps_sock_flow_table);
-	if (flow_table && sock_flow_table) {
-		struct rps_dev_flow *rflow;
+	if (flow_table && sock_flow_table)
+	{
+		struct rps_dev_flow* rflow;
 		u32 next_cpu;
 		u32 ident;
 
@@ -4466,15 +4398,14 @@ static int get_rps_cpu(struct net_device *dev, struct sk_buff *skb,
 		 *     This guarantees that all previous packets for the flow
 		 *     have been dequeued, thus preserving in order delivery.
 		 */
-		if (unlikely(tcpu != next_cpu) &&
-		    (tcpu >= nr_cpu_ids || !cpu_online(tcpu) ||
-		     ((int)(per_cpu(softnet_data, tcpu).input_queue_head -
-		      rflow->last_qtail)) >= 0)) {
+		if (unlikely(tcpu != next_cpu) && (tcpu >= nr_cpu_ids || !cpu_online(tcpu) || ((int)(per_cpu(softnet_data, tcpu).input_queue_head - rflow->last_qtail)) >= 0))
+		{
 			tcpu = next_cpu;
 			rflow = set_rps_cpu(dev, skb, rflow, next_cpu);
 		}
 
-		if (tcpu < nr_cpu_ids && cpu_online(tcpu)) {
+		if (tcpu < nr_cpu_ids && cpu_online(tcpu))
+		{
 			*rflowp = rflow;
 			cpu = tcpu;
 			goto done;
@@ -4483,9 +4414,11 @@ static int get_rps_cpu(struct net_device *dev, struct sk_buff *skb,
 
 try_rps:
 
-	if (map) {
+	if (map)
+	{
 		tcpu = map->cpus[reciprocal_scale(hash, map->len)];
-		if (cpu_online(tcpu)) {
+		if (cpu_online(tcpu))
+		{
 			cpu = tcpu;
 			goto done;
 		}
@@ -4508,24 +4441,21 @@ done:
  * this function for each installed filter and remove the filters for
  * which it returns %true.
  */
-bool rps_may_expire_flow(struct net_device *dev, u16 rxq_index,
-			 u32 flow_id, u16 filter_id)
+bool rps_may_expire_flow(struct net_device* dev, u16 rxq_index, u32 flow_id, u16 filter_id)
 {
-	struct netdev_rx_queue *rxqueue = dev->_rx + rxq_index;
-	struct rps_dev_flow_table *flow_table;
-	struct rps_dev_flow *rflow;
+	struct netdev_rx_queue* rxqueue = dev->_rx + rxq_index;
+	struct rps_dev_flow_table* flow_table;
+	struct rps_dev_flow* rflow;
 	bool expire = true;
 	unsigned int cpu;
 
 	rcu_read_lock();
 	flow_table = rcu_dereference(rxqueue->rps_flow_table);
-	if (flow_table && flow_id <= flow_table->mask) {
+	if (flow_table && flow_id <= flow_table->mask)
+	{
 		rflow = &flow_table->flows[flow_id];
 		cpu = READ_ONCE(rflow->cpu);
-		if (rflow->filter == filter_id && cpu < nr_cpu_ids &&
-		    ((int)(per_cpu(softnet_data, cpu).input_queue_head -
-			   rflow->last_qtail) <
-		     (int)(10 * flow_table->mask)))
+		if (rflow->filter == filter_id && cpu < nr_cpu_ids && ((int)(per_cpu(softnet_data, cpu).input_queue_head - rflow->last_qtail) < (int)(10 * flow_table->mask)))
 			expire = false;
 	}
 	rcu_read_unlock();
@@ -4536,9 +4466,9 @@ EXPORT_SYMBOL(rps_may_expire_flow);
 #endif /* CONFIG_RFS_ACCEL */
 
 /* Called from hardirq (IPI) context */
-static void rps_trigger_softirq(void *data)
+static void rps_trigger_softirq(void* data)
 {
-	struct softnet_data *sd = data;
+	struct softnet_data* sd = data;
 
 	____napi_schedule(sd, &sd->backlog);
 	sd->received_rps++;
@@ -4551,12 +4481,13 @@ static void rps_trigger_softirq(void *data)
  * If yes, queue it to our IPI list and return 1
  * If no, return 0
  */
-static int rps_ipi_queued(struct softnet_data *sd)
+static int rps_ipi_queued(struct softnet_data* sd)
 {
 #ifdef CONFIG_RPS
-	struct softnet_data *mysd = this_cpu_ptr(&softnet_data);
+	struct softnet_data* mysd = this_cpu_ptr(&softnet_data);
 
-	if (sd != mysd) {
+	if (sd != mysd)
+	{
 		sd->rps_ipi_next = mysd->rps_ipi_list;
 		mysd->rps_ipi_list = sd;
 
@@ -4571,11 +4502,11 @@ static int rps_ipi_queued(struct softnet_data *sd)
 int netdev_flow_limit_table_len __read_mostly = (1 << 12);
 #endif
 
-static bool skb_flow_limit(struct sk_buff *skb, unsigned int qlen)
+static bool skb_flow_limit(struct sk_buff* skb, unsigned int qlen)
 {
 #ifdef CONFIG_NET_FLOW_LIMIT
-	struct sd_flow_limit *fl;
-	struct softnet_data *sd;
+	struct sd_flow_limit* fl;
+	struct softnet_data* sd;
 	unsigned int old_flow, new_flow;
 
 	if (qlen < (netdev_max_backlog >> 1))
@@ -4585,7 +4516,8 @@ static bool skb_flow_limit(struct sk_buff *skb, unsigned int qlen)
 
 	rcu_read_lock();
 	fl = rcu_dereference(sd->flow_limit);
-	if (fl) {
+	if (fl)
+	{
 		new_flow = skb_get_hash(skb) & (fl->num_buckets - 1);
 		old_flow = fl->history[fl->history_head];
 		fl->history[fl->history_head] = new_flow;
@@ -4596,7 +4528,8 @@ static bool skb_flow_limit(struct sk_buff *skb, unsigned int qlen)
 		if (likely(fl->buckets[old_flow]))
 			fl->buckets[old_flow]--;
 
-		if (++fl->buckets[new_flow] > (FLOW_LIMIT_HISTORY >> 1)) {
+		if (++fl->buckets[new_flow] > (FLOW_LIMIT_HISTORY >> 1))
+		{
 			fl->count++;
 			rcu_read_unlock();
 			return true;
@@ -4611,10 +4544,9 @@ static bool skb_flow_limit(struct sk_buff *skb, unsigned int qlen)
  * enqueue_to_backlog is called to queue an skb to a per CPU backlog
  * queue (may be a remote CPU queue).
  */
-static int enqueue_to_backlog(struct sk_buff *skb, int cpu,
-			      unsigned int *qtail)
+static int enqueue_to_backlog(struct sk_buff* skb, int cpu, unsigned int* qtail)
 {
-	struct softnet_data *sd;
+	struct softnet_data* sd;
 	unsigned long flags;
 	unsigned int qlen;
 
@@ -4626,9 +4558,11 @@ static int enqueue_to_backlog(struct sk_buff *skb, int cpu,
 	if (!netif_running(skb->dev))
 		goto drop;
 	qlen = skb_queue_len(&sd->input_pkt_queue);
-	if (qlen <= netdev_max_backlog && !skb_flow_limit(skb, qlen)) {
-		if (qlen) {
-enqueue:
+	if (qlen <= netdev_max_backlog && !skb_flow_limit(skb, qlen))
+	{
+		if (qlen)
+		{
+		enqueue:
 			__skb_queue_tail(&sd->input_pkt_queue, skb);
 			input_queue_tail_incr_save(sd, qtail);
 			rps_unlock(sd);
@@ -4639,7 +4573,8 @@ enqueue:
 		/* Schedule NAPI for backlog device
 		 * We can use non atomic operation since we own the queue lock
 		 */
-		if (!__test_and_set_bit(NAPI_STATE_SCHED, &sd->backlog.state)) {
+		if (!__test_and_set_bit(NAPI_STATE_SCHED, &sd->backlog.state))
+		{
 			if (!rps_ipi_queued(sd))
 				____napi_schedule(sd, &sd->backlog);
 		}
@@ -4657,21 +4592,24 @@ drop:
 	return NET_RX_DROP;
 }
 
-static struct netdev_rx_queue *netif_get_rxqueue(struct sk_buff *skb)
+static struct netdev_rx_queue* netif_get_rxqueue(struct sk_buff* skb)
 {
-	struct net_device *dev = skb->dev;
-	struct netdev_rx_queue *rxqueue;
+	struct net_device* dev = skb->dev;
+	struct netdev_rx_queue* rxqueue;
 
 	rxqueue = dev->_rx;
 
-	if (skb_rx_queue_recorded(skb)) {
+	if (skb_rx_queue_recorded(skb))
+	{
 		u16 index = skb_get_rx_queue(skb);
 
-		if (unlikely(index >= dev->real_num_rx_queues)) {
-			WARN_ONCE(dev->real_num_rx_queues > 1,
-				  "%s received packet on queue %u, but number "
-				  "of RX queues is %u\n",
-				  dev->name, index, dev->real_num_rx_queues);
+		if (unlikely(index >= dev->real_num_rx_queues))
+		{
+			WARN_ONCE(
+				dev->real_num_rx_queues > 1,
+				"%s received packet on queue %u, but number "
+				"of RX queues is %u\n",
+				dev->name, index, dev->real_num_rx_queues);
 
 			return rxqueue; /* Return first rxqueue */
 		}
@@ -4680,15 +4618,14 @@ static struct netdev_rx_queue *netif_get_rxqueue(struct sk_buff *skb)
 	return rxqueue;
 }
 
-u32 bpf_prog_run_generic_xdp(struct sk_buff *skb, struct xdp_buff *xdp,
-			     struct bpf_prog *xdp_prog)
+u32 bpf_prog_run_generic_xdp(struct sk_buff* skb, struct xdp_buff* xdp, struct bpf_prog* xdp_prog)
 {
 	void *orig_data, *orig_data_end, *hard_start;
-	struct netdev_rx_queue *rxqueue;
+	struct netdev_rx_queue* rxqueue;
 	bool orig_bcast, orig_host;
 	u32 mac_len, frame_sz;
 	__be16 orig_eth_type;
-	struct ethhdr *eth;
+	struct ethhdr* eth;
 	u32 metalen, act;
 	int off;
 
@@ -4699,17 +4636,16 @@ u32 bpf_prog_run_generic_xdp(struct sk_buff *skb, struct xdp_buff *xdp,
 	hard_start = skb->data - skb_headroom(skb);
 
 	/* SKB "head" area always have tailroom for skb_shared_info */
-	frame_sz = (void *)skb_end_pointer(skb) - hard_start;
+	frame_sz = (void*)skb_end_pointer(skb) - hard_start;
 	frame_sz += SKB_DATA_ALIGN(sizeof(struct skb_shared_info));
 
 	rxqueue = netif_get_rxqueue(skb);
 	xdp_init_buff(xdp, frame_sz, &rxqueue->xdp_rxq);
-	xdp_prepare_buff(xdp, hard_start, skb_headroom(skb) - mac_len,
-			 skb_headlen(skb) + mac_len, true);
+	xdp_prepare_buff(xdp, hard_start, skb_headroom(skb) - mac_len, skb_headlen(skb) + mac_len, true);
 
 	orig_data_end = xdp->data_end;
 	orig_data = xdp->data;
-	eth = (struct ethhdr *)xdp->data;
+	eth = (struct ethhdr*)xdp->data;
 	orig_host = ether_addr_equal_64bits(eth->h_dest, skb->dev->dev_addr);
 	orig_bcast = is_multicast_ether_addr_64bits(eth->h_dest);
 	orig_eth_type = eth->h_proto;
@@ -4718,7 +4654,8 @@ u32 bpf_prog_run_generic_xdp(struct sk_buff *skb, struct xdp_buff *xdp,
 
 	/* check if bpf_xdp_adjust_head was used */
 	off = xdp->data - orig_data;
-	if (off) {
+	if (off)
+	{
 		if (off > 0)
 			__skb_pull(skb, off);
 		else if (off < 0)
@@ -4730,17 +4667,16 @@ u32 bpf_prog_run_generic_xdp(struct sk_buff *skb, struct xdp_buff *xdp,
 
 	/* check if bpf_xdp_adjust_tail was used */
 	off = xdp->data_end - orig_data_end;
-	if (off != 0) {
+	if (off != 0)
+	{
 		skb_set_tail_pointer(skb, xdp->data_end - xdp->data);
 		skb->len += off; /* positive on grow, negative on shrink */
 	}
 
 	/* check if XDP changed eth hdr such SKB needs update */
-	eth = (struct ethhdr *)xdp->data;
-	if ((orig_eth_type != eth->h_proto) ||
-	    (orig_host != ether_addr_equal_64bits(eth->h_dest,
-						  skb->dev->dev_addr)) ||
-	    (orig_bcast != is_multicast_ether_addr_64bits(eth->h_dest))) {
+	eth = (struct ethhdr*)xdp->data;
+	if ((orig_eth_type != eth->h_proto) || (orig_host != ether_addr_equal_64bits(eth->h_dest, skb->dev->dev_addr)) || (orig_bcast != is_multicast_ether_addr_64bits(eth->h_dest)))
+	{
 		__skb_push(skb, ETH_HLEN);
 		skb->pkt_type = PACKET_HOST;
 		skb->protocol = eth_type_trans(skb, skb->dev);
@@ -4753,7 +4689,8 @@ u32 bpf_prog_run_generic_xdp(struct sk_buff *skb, struct xdp_buff *xdp,
 	 * Caller is responsible for managing lifetime of skb (i.e. calling
 	 * kfree_skb in response to actions it cannot handle/XDP_DROP).
 	 */
-	switch (act) {
+	switch (act)
+	{
 	case XDP_REDIRECT:
 	case XDP_TX:
 		__skb_push(skb, mac_len);
@@ -4768,9 +4705,7 @@ u32 bpf_prog_run_generic_xdp(struct sk_buff *skb, struct xdp_buff *xdp,
 	return act;
 }
 
-static u32 netif_receive_generic_xdp(struct sk_buff *skb,
-				     struct xdp_buff *xdp,
-				     struct bpf_prog *xdp_prog)
+static u32 netif_receive_generic_xdp(struct sk_buff* skb, struct xdp_buff* xdp, struct bpf_prog* xdp_prog)
 {
 	u32 act = XDP_DROP;
 
@@ -4784,24 +4719,23 @@ static u32 netif_receive_generic_xdp(struct sk_buff *skb,
 	 * of XDP_PACKET_HEADROOM bytes. This is the guarantee that also
 	 * native XDP provides, thus we need to do it here as well.
 	 */
-	if (skb_cloned(skb) || skb_is_nonlinear(skb) ||
-	    skb_headroom(skb) < XDP_PACKET_HEADROOM) {
+	if (skb_cloned(skb) || skb_is_nonlinear(skb) || skb_headroom(skb) < XDP_PACKET_HEADROOM)
+	{
 		int hroom = XDP_PACKET_HEADROOM - skb_headroom(skb);
 		int troom = skb->tail + skb->data_len - skb->end;
 
 		/* In case we have to go down the path and also linearize,
 		 * then lets do the pskb_expand_head() work just once here.
 		 */
-		if (pskb_expand_head(skb,
-				     hroom > 0 ? ALIGN(hroom, NET_SKB_PAD) : 0,
-				     troom > 0 ? troom + 128 : 0, GFP_ATOMIC))
+		if (pskb_expand_head(skb, hroom > 0 ? ALIGN(hroom, NET_SKB_PAD) : 0, troom > 0 ? troom + 128 : 0, GFP_ATOMIC))
 			goto do_drop;
 		if (skb_linearize(skb))
 			goto do_drop;
 	}
 
 	act = bpf_prog_run_generic_xdp(skb, xdp, xdp_prog);
-	switch (act) {
+	switch (act)
+	{
 	case XDP_REDIRECT:
 	case XDP_TX:
 	case XDP_PASS:
@@ -4824,23 +4758,25 @@ static u32 netif_receive_generic_xdp(struct sk_buff *skb,
 /* When doing generic XDP we have to bypass the qdisc layer and the
  * network taps in order to match in-driver-XDP behavior.
  */
-void generic_xdp_tx(struct sk_buff *skb, struct bpf_prog *xdp_prog)
+void generic_xdp_tx(struct sk_buff* skb, struct bpf_prog* xdp_prog)
 {
-	struct net_device *dev = skb->dev;
-	struct netdev_queue *txq;
+	struct net_device* dev = skb->dev;
+	struct netdev_queue* txq;
 	bool free_skb = true;
 	int cpu, rc;
 
 	txq = netdev_core_pick_tx(dev, skb, NULL);
 	cpu = smp_processor_id();
 	HARD_TX_LOCK(dev, txq, cpu);
-	if (!netif_xmit_stopped(txq)) {
+	if (!netif_xmit_stopped(txq))
+	{
 		rc = netdev_start_xmit(skb, dev, txq, 0);
 		if (dev_xmit_complete(rc))
 			free_skb = false;
 	}
 	HARD_TX_UNLOCK(dev, txq);
-	if (free_skb) {
+	if (free_skb)
+	{
 		trace_xdp_exception(dev, xdp_prog, XDP_TX);
 		kfree_skb(skb);
 	}
@@ -4848,19 +4784,21 @@ void generic_xdp_tx(struct sk_buff *skb, struct bpf_prog *xdp_prog)
 
 static DEFINE_STATIC_KEY_FALSE(generic_xdp_needed_key);
 
-int do_xdp_generic(struct bpf_prog *xdp_prog, struct sk_buff *skb)
+int do_xdp_generic(struct bpf_prog* xdp_prog, struct sk_buff* skb)
 {
-	if (xdp_prog) {
+	if (xdp_prog)
+	{
 		struct xdp_buff xdp;
 		u32 act;
 		int err;
 
 		act = netif_receive_generic_xdp(skb, &xdp, xdp_prog);
-		if (act != XDP_PASS) {
-			switch (act) {
+		if (act != XDP_PASS)
+		{
+			switch (act)
+			{
 			case XDP_REDIRECT:
-				err = xdp_do_generic_redirect(skb->dev, skb,
-							      &xdp, xdp_prog);
+				err = xdp_do_generic_redirect(skb->dev, skb, &xdp, xdp_prog);
 				if (err)
 					goto out_redir;
 				break;
@@ -4878,7 +4816,7 @@ out_redir:
 }
 EXPORT_SYMBOL_GPL(do_xdp_generic);
 
-static int netif_rx_internal(struct sk_buff *skb)
+static int netif_rx_internal(struct sk_buff* skb)
 {
 	int ret;
 
@@ -4887,7 +4825,8 @@ static int netif_rx_internal(struct sk_buff *skb)
 	trace_netif_rx(skb);
 
 #ifdef CONFIG_RPS
-	if (static_branch_unlikely(&rps_needed)) {
+	if (static_branch_unlikely(&rps_needed))
+	{
 		struct rps_dev_flow voidflow, *rflow = &voidflow;
 		int cpu;
 
@@ -4902,7 +4841,8 @@ static int netif_rx_internal(struct sk_buff *skb)
 
 		rcu_read_unlock();
 		preempt_enable();
-	} else
+	}
+	else
 #endif
 	{
 		unsigned int qtail;
@@ -4928,7 +4868,7 @@ static int netif_rx_internal(struct sk_buff *skb)
  *
  */
 
-int netif_rx(struct sk_buff *skb)
+int netif_rx(struct sk_buff* skb)
 {
 	int ret;
 
@@ -4941,7 +4881,7 @@ int netif_rx(struct sk_buff *skb)
 }
 EXPORT_SYMBOL(netif_rx);
 
-int netif_rx_ni(struct sk_buff *skb)
+int netif_rx_ni(struct sk_buff* skb)
 {
 	int err;
 
@@ -4958,7 +4898,7 @@ int netif_rx_ni(struct sk_buff *skb)
 }
 EXPORT_SYMBOL(netif_rx_ni);
 
-int netif_rx_any_context(struct sk_buff *skb)
+int netif_rx_any_context(struct sk_buff* skb)
 {
 	/*
 	 * If invoked from contexts which do not invoke bottom half
@@ -4973,20 +4913,22 @@ int netif_rx_any_context(struct sk_buff *skb)
 }
 EXPORT_SYMBOL(netif_rx_any_context);
 
-static __latent_entropy void net_tx_action(struct softirq_action *h)
+static __latent_entropy void net_tx_action(struct softirq_action* h)
 {
-	struct softnet_data *sd = this_cpu_ptr(&softnet_data);
+	struct softnet_data* sd = this_cpu_ptr(&softnet_data);
 
-	if (sd->completion_queue) {
-		struct sk_buff *clist;
+	if (sd->completion_queue)
+	{
+		struct sk_buff* clist;
 
 		local_irq_disable();
 		clist = sd->completion_queue;
 		sd->completion_queue = NULL;
 		local_irq_enable();
 
-		while (clist) {
-			struct sk_buff *skb = clist;
+		while (clist)
+		{
+			struct sk_buff* skb = clist;
 
 			clist = clist->next;
 
@@ -5003,8 +4945,9 @@ static __latent_entropy void net_tx_action(struct softirq_action *h)
 		}
 	}
 
-	if (sd->output_queue) {
-		struct Qdisc *head;
+	if (sd->output_queue)
+	{
+		struct Qdisc* head;
 
 		local_irq_disable();
 		head = sd->output_queue;
@@ -5014,9 +4957,10 @@ static __latent_entropy void net_tx_action(struct softirq_action *h)
 
 		rcu_read_lock();
 
-		while (head) {
-			struct Qdisc *q = head;
-			spinlock_t *root_lock = NULL;
+		while (head)
+		{
+			struct Qdisc* q = head;
+			spinlock_t* root_lock = NULL;
 
 			head = head->next_sched;
 
@@ -5025,11 +4969,13 @@ static __latent_entropy void net_tx_action(struct softirq_action *h)
 			 */
 			smp_mb__before_atomic();
 
-			if (!(q->flags & TCQ_F_NOLOCK)) {
+			if (!(q->flags & TCQ_F_NOLOCK))
+			{
 				root_lock = qdisc_lock(q);
 				spin_lock(root_lock);
-			} else if (unlikely(test_bit(__QDISC_STATE_DEACTIVATED,
-						     &q->state))) {
+			}
+			else if (unlikely(test_bit(__QDISC_STATE_DEACTIVATED, &q->state)))
+			{
 				/* There is a synchronize_net() between
 				 * STATE_DEACTIVATED flag being set and
 				 * qdisc_reset()/some_qdisc_is_busy() in
@@ -5056,17 +5002,14 @@ static __latent_entropy void net_tx_action(struct softirq_action *h)
 
 #if IS_ENABLED(CONFIG_BRIDGE) && IS_ENABLED(CONFIG_ATM_LANE)
 /* This hook is defined here for ATM LANE */
-int (*br_fdb_test_addr_hook)(struct net_device *dev,
-			     unsigned char *addr) __read_mostly;
+int (*br_fdb_test_addr_hook)(struct net_device* dev, unsigned char* addr) __read_mostly;
 EXPORT_SYMBOL_GPL(br_fdb_test_addr_hook);
 #endif
 
-static inline struct sk_buff *
-sch_handle_ingress(struct sk_buff *skb, struct packet_type **pt_prev, int *ret,
-		   struct net_device *orig_dev, bool *another)
+static inline struct sk_buff* sch_handle_ingress(struct sk_buff* skb, struct packet_type** pt_prev, int* ret, struct net_device* orig_dev, bool* another)
 {
 #ifdef CONFIG_NET_CLS_ACT
-	struct mini_Qdisc *miniq = rcu_dereference_bh(skb->dev->miniq_ingress);
+	struct mini_Qdisc* miniq = rcu_dereference_bh(skb->dev->miniq_ingress);
 	struct tcf_result cl_res;
 
 	/* If there's at least one ingress present somewhere (so
@@ -5077,7 +5020,8 @@ sch_handle_ingress(struct sk_buff *skb, struct packet_type **pt_prev, int *ret,
 	if (!miniq)
 		return skb;
 
-	if (*pt_prev) {
+	if (*pt_prev)
+	{
 		*ret = deliver_skb(skb, *pt_prev, orig_dev);
 		*pt_prev = NULL;
 	}
@@ -5088,7 +5032,8 @@ sch_handle_ingress(struct sk_buff *skb, struct packet_type **pt_prev, int *ret,
 	skb->tc_at_ingress = 1;
 	mini_qdisc_bstats_cpu_update(miniq, skb);
 
-	switch (tcf_classify(skb, miniq->block, miniq->filter_list, &cl_res, false)) {
+	switch (tcf_classify(skb, miniq->block, miniq->filter_list, &cl_res, false))
+	{
 	case TC_ACT_OK:
 	case TC_ACT_RECLASSIFY:
 		skb->tc_index = TC_H_MIN(cl_res.classid);
@@ -5108,7 +5053,8 @@ sch_handle_ingress(struct sk_buff *skb, struct packet_type **pt_prev, int *ret,
 		 * redirecting to another netdev
 		 */
 		__skb_push(skb, skb->mac_len);
-		if (skb_do_redirect(skb) == -EAGAIN) {
+		if (skb_do_redirect(skb) == -EAGAIN)
+		{
 			__skb_pull(skb, skb->mac_len);
 			*another = true;
 			break;
@@ -5132,7 +5078,7 @@ sch_handle_ingress(struct sk_buff *skb, struct packet_type **pt_prev, int *ret,
  *
  *	The caller must hold the rtnl_mutex.
  */
-bool netdev_is_rx_handler_busy(struct net_device *dev)
+bool netdev_is_rx_handler_busy(struct net_device* dev)
 {
 	ASSERT_RTNL();
 	return dev && rtnl_dereference(dev->rx_handler);
@@ -5153,9 +5099,7 @@ EXPORT_SYMBOL_GPL(netdev_is_rx_handler_busy);
  *
  *	For a general description of rx_handler, see enum rx_handler_result.
  */
-int netdev_rx_handler_register(struct net_device *dev,
-			       rx_handler_func_t *rx_handler,
-			       void *rx_handler_data)
+int netdev_rx_handler_register(struct net_device* dev, rx_handler_func_t* rx_handler, void* rx_handler_data)
 {
 	if (netdev_is_rx_handler_busy(dev))
 		return -EBUSY;
@@ -5179,7 +5123,7 @@ EXPORT_SYMBOL_GPL(netdev_rx_handler_register);
  *
  *	The caller must hold the rtnl_mutex.
  */
-void netdev_rx_handler_unregister(struct net_device *dev)
+void netdev_rx_handler_unregister(struct net_device* dev)
 {
 
 	ASSERT_RTNL();
@@ -5197,9 +5141,10 @@ EXPORT_SYMBOL_GPL(netdev_rx_handler_unregister);
  * Limit the use of PFMEMALLOC reserves to those protocols that implement
  * the special handling of PFMEMALLOC skbs.
  */
-static bool skb_pfmemalloc_protocol(struct sk_buff *skb)
+static bool skb_pfmemalloc_protocol(struct sk_buff* skb)
 {
-	switch (skb->protocol) {
+	switch (skb->protocol)
+	{
 	case htons(ETH_P_ARP):
 	case htons(ETH_P_IP):
 	case htons(ETH_P_IPV6):
@@ -5211,13 +5156,14 @@ static bool skb_pfmemalloc_protocol(struct sk_buff *skb)
 	}
 }
 
-static inline int nf_ingress(struct sk_buff *skb, struct packet_type **pt_prev,
-			     int *ret, struct net_device *orig_dev)
+static inline int nf_ingress(struct sk_buff* skb, struct packet_type** pt_prev, int* ret, struct net_device* orig_dev)
 {
-	if (nf_hook_ingress_active(skb)) {
+	if (nf_hook_ingress_active(skb))
+	{
 		int ingress_retval;
 
-		if (*pt_prev) {
+		if (*pt_prev)
+		{
 			*ret = deliver_skb(skb, *pt_prev, orig_dev);
 			*pt_prev = NULL;
 		}
@@ -5230,13 +5176,12 @@ static inline int nf_ingress(struct sk_buff *skb, struct packet_type **pt_prev,
 	return 0;
 }
 
-static int __netif_receive_skb_core(struct sk_buff **pskb, bool pfmemalloc,
-				    struct packet_type **ppt_prev)
+static int __netif_receive_skb_core(struct sk_buff** pskb, bool pfmemalloc, struct packet_type** ppt_prev)
 {
 	struct packet_type *ptype, *pt_prev;
-	rx_handler_func_t *rx_handler;
-	struct sk_buff *skb = *pskb;
-	struct net_device *orig_dev;
+	rx_handler_func_t* rx_handler;
+	struct sk_buff* skb = *pskb;
+	struct net_device* orig_dev;
 	bool deliver_exact = false;
 	int ret = NET_RX_DROP;
 	__be16 type;
@@ -5259,20 +5204,23 @@ another_round:
 
 	__this_cpu_inc(softnet_data.processed);
 
-	if (static_branch_unlikely(&generic_xdp_needed_key)) {
+	if (static_branch_unlikely(&generic_xdp_needed_key))
+	{
 		int ret2;
 
 		migrate_disable();
 		ret2 = do_xdp_generic(rcu_dereference(skb->dev->xdp_prog), skb);
 		migrate_enable();
 
-		if (ret2 != XDP_PASS) {
+		if (ret2 != XDP_PASS)
+		{
 			ret = NET_RX_DROP;
 			goto out;
 		}
 	}
 
-	if (eth_type_vlan(skb->protocol)) {
+	if (eth_type_vlan(skb->protocol))
+	{
 		skb = skb_vlan_untag(skb);
 		if (unlikely(!skb))
 			goto out;
@@ -5284,13 +5232,15 @@ another_round:
 	if (pfmemalloc)
 		goto skip_taps;
 
-	list_for_each_entry_rcu(ptype, &ptype_all, list) {
+	list_for_each_entry_rcu(ptype, &ptype_all, list)
+	{
 		if (pt_prev)
 			ret = deliver_skb(skb, pt_prev, orig_dev);
 		pt_prev = ptype;
 	}
 
-	list_for_each_entry_rcu(ptype, &skb->dev->ptype_all, list) {
+	list_for_each_entry_rcu(ptype, &skb->dev->ptype_all, list)
+	{
 		if (pt_prev)
 			ret = deliver_skb(skb, pt_prev, orig_dev);
 		pt_prev = ptype;
@@ -5298,11 +5248,11 @@ another_round:
 
 skip_taps:
 #ifdef CONFIG_NET_INGRESS
-	if (static_branch_unlikely(&ingress_needed_key)) {
+	if (static_branch_unlikely(&ingress_needed_key))
+	{
 		bool another = false;
 
-		skb = sch_handle_ingress(skb, &pt_prev, &ret, orig_dev,
-					 &another);
+		skb = sch_handle_ingress(skb, &pt_prev, &ret, orig_dev, &another);
 		if (another)
 			goto another_round;
 		if (!skb)
@@ -5317,8 +5267,10 @@ skip_classify:
 	if (pfmemalloc && !skb_pfmemalloc_protocol(skb))
 		goto drop;
 
-	if (skb_vlan_tag_present(skb)) {
-		if (pt_prev) {
+	if (skb_vlan_tag_present(skb))
+	{
+		if (pt_prev)
+		{
 			ret = deliver_skb(skb, pt_prev, orig_dev);
 			pt_prev = NULL;
 		}
@@ -5329,12 +5281,15 @@ skip_classify:
 	}
 
 	rx_handler = rcu_dereference(skb->dev->rx_handler);
-	if (rx_handler) {
-		if (pt_prev) {
+	if (rx_handler)
+	{
+		if (pt_prev)
+		{
 			ret = deliver_skb(skb, pt_prev, orig_dev);
 			pt_prev = NULL;
 		}
-		switch (rx_handler(&skb)) {
+		switch (rx_handler(&skb))
+		{
 		case RX_HANDLER_CONSUMED:
 			ret = NET_RX_SUCCESS;
 			goto out;
@@ -5350,14 +5305,18 @@ skip_classify:
 		}
 	}
 
-	if (unlikely(skb_vlan_tag_present(skb)) && !netdev_uses_dsa(skb->dev)) {
-check_vlan_id:
-		if (skb_vlan_tag_get_id(skb)) {
+	if (unlikely(skb_vlan_tag_present(skb)) && !netdev_uses_dsa(skb->dev))
+	{
+	check_vlan_id:
+		if (skb_vlan_tag_get_id(skb))
+		{
 			/* Vlan id is non 0 and vlan_do_receive() above couldn't
 			 * find vlan device.
 			 */
 			skb->pkt_type = PACKET_OTHERHOST;
-		} else if (eth_type_vlan(skb->protocol)) {
+		}
+		else if (eth_type_vlan(skb->protocol))
+		{
 			/* Outer header is 802.1P with vlan 0, inner header is
 			 * 802.1Q or 802.1AD and vlan_do_receive() above could
 			 * not find vlan dev for vlan id 0.
@@ -5390,26 +5349,27 @@ check_vlan_id:
 	type = skb->protocol;
 
 	/* deliver only exact match when indicated */
-	if (likely(!deliver_exact)) {
-		deliver_ptype_list_skb(skb, &pt_prev, orig_dev, type,
-				       &ptype_base[ntohs(type) &
-						   PTYPE_HASH_MASK]);
+	if (likely(!deliver_exact))
+	{
+		deliver_ptype_list_skb(skb, &pt_prev, orig_dev, type, &ptype_base[ntohs(type) & PTYPE_HASH_MASK]);
 	}
 
-	deliver_ptype_list_skb(skb, &pt_prev, orig_dev, type,
-			       &orig_dev->ptype_specific);
+	deliver_ptype_list_skb(skb, &pt_prev, orig_dev, type, &orig_dev->ptype_specific);
 
-	if (unlikely(skb->dev != orig_dev)) {
-		deliver_ptype_list_skb(skb, &pt_prev, orig_dev, type,
-				       &skb->dev->ptype_specific);
+	if (unlikely(skb->dev != orig_dev))
+	{
+		deliver_ptype_list_skb(skb, &pt_prev, orig_dev, type, &skb->dev->ptype_specific);
 	}
 
-	if (pt_prev) {
+	if (pt_prev)
+	{
 		if (unlikely(skb_orphan_frags_rx(skb, GFP_ATOMIC)))
 			goto drop;
 		*ppt_prev = pt_prev;
-	} else {
-drop:
+	}
+	else
+	{
+	drop:
 		if (!deliver_exact)
 			atomic_long_inc(&skb->dev->rx_dropped);
 		else
@@ -5432,16 +5392,15 @@ out:
 	return ret;
 }
 
-static int __netif_receive_skb_one_core(struct sk_buff *skb, bool pfmemalloc)
+static int __netif_receive_skb_one_core(struct sk_buff* skb, bool pfmemalloc)
 {
-	struct net_device *orig_dev = skb->dev;
-	struct packet_type *pt_prev = NULL;
+	struct net_device* orig_dev = skb->dev;
+	struct packet_type* pt_prev = NULL;
 	int ret;
 
 	ret = __netif_receive_skb_core(&skb, pfmemalloc, &pt_prev);
 	if (pt_prev)
-		ret = INDIRECT_CALL_INET(pt_prev->func, ipv6_rcv, ip_rcv, skb,
-					 skb->dev, pt_prev, orig_dev);
+		ret = INDIRECT_CALL_INET(pt_prev->func, ipv6_rcv, ip_rcv, skb, skb->dev, pt_prev, orig_dev);
 	return ret;
 }
 
@@ -5460,7 +5419,7 @@ static int __netif_receive_skb_one_core(struct sk_buff *skb, bool pfmemalloc)
  *	NET_RX_SUCCESS: no congestion
  *	NET_RX_DROP: packet was dropped
  */
-int netif_receive_skb_core(struct sk_buff *skb)
+int netif_receive_skb_core(struct sk_buff* skb)
 {
 	int ret;
 
@@ -5472,9 +5431,7 @@ int netif_receive_skb_core(struct sk_buff *skb)
 }
 EXPORT_SYMBOL(netif_receive_skb_core);
 
-static inline void __netif_receive_skb_list_ptype(struct list_head *head,
-						  struct packet_type *pt_prev,
-						  struct net_device *orig_dev)
+static inline void __netif_receive_skb_list_ptype(struct list_head* head, struct packet_type* pt_prev, struct net_device* orig_dev)
 {
 	struct sk_buff *skb, *next;
 
@@ -5483,16 +5440,16 @@ static inline void __netif_receive_skb_list_ptype(struct list_head *head,
 	if (list_empty(head))
 		return;
 	if (pt_prev->list_func != NULL)
-		INDIRECT_CALL_INET(pt_prev->list_func, ipv6_list_rcv,
-				   ip_list_rcv, head, pt_prev, orig_dev);
+		INDIRECT_CALL_INET(pt_prev->list_func, ipv6_list_rcv, ip_list_rcv, head, pt_prev, orig_dev);
 	else
-		list_for_each_entry_safe(skb, next, head, list) {
+		list_for_each_entry_safe(skb, next, head, list)
+		{
 			skb_list_del_init(skb);
 			pt_prev->func(skb, skb->dev, pt_prev, orig_dev);
 		}
 }
 
-static void __netif_receive_skb_list_core(struct list_head *head, bool pfmemalloc)
+static void __netif_receive_skb_list_core(struct list_head* head, bool pfmemalloc)
 {
 	/* Fast-path assumptions:
 	 * - There is no RX handler.
@@ -5504,22 +5461,24 @@ static void __netif_receive_skb_list_core(struct list_head *head, bool pfmemallo
 	 * other ptypes are handled per-packet.
 	 */
 	/* Current (common) ptype of sublist */
-	struct packet_type *pt_curr = NULL;
+	struct packet_type* pt_curr = NULL;
 	/* Current (common) orig_dev of sublist */
-	struct net_device *od_curr = NULL;
+	struct net_device* od_curr = NULL;
 	struct list_head sublist;
 	struct sk_buff *skb, *next;
 
 	INIT_LIST_HEAD(&sublist);
-	list_for_each_entry_safe(skb, next, head, list) {
-		struct net_device *orig_dev = skb->dev;
-		struct packet_type *pt_prev = NULL;
+	list_for_each_entry_safe(skb, next, head, list)
+	{
+		struct net_device* orig_dev = skb->dev;
+		struct packet_type* pt_prev = NULL;
 
 		skb_list_del_init(skb);
 		__netif_receive_skb_core(&skb, pfmemalloc, &pt_prev);
 		if (!pt_prev)
 			continue;
-		if (pt_curr != pt_prev || od_curr != orig_dev) {
+		if (pt_curr != pt_prev || od_curr != orig_dev)
+		{
 			/* dispatch old sublist */
 			__netif_receive_skb_list_ptype(&sublist, pt_curr, od_curr);
 			/* start new sublist */
@@ -5534,11 +5493,12 @@ static void __netif_receive_skb_list_core(struct list_head *head, bool pfmemallo
 	__netif_receive_skb_list_ptype(&sublist, pt_curr, od_curr);
 }
 
-static int __netif_receive_skb(struct sk_buff *skb)
+static int __netif_receive_skb(struct sk_buff* skb)
 {
 	int ret;
 
-	if (sk_memalloc_socks() && skb_pfmemalloc(skb)) {
+	if (sk_memalloc_socks() && skb_pfmemalloc(skb))
+	{
 		unsigned int noreclaim_flag;
 
 		/*
@@ -5553,20 +5513,23 @@ static int __netif_receive_skb(struct sk_buff *skb)
 		noreclaim_flag = memalloc_noreclaim_save();
 		ret = __netif_receive_skb_one_core(skb, true);
 		memalloc_noreclaim_restore(noreclaim_flag);
-	} else
+	}
+	else
 		ret = __netif_receive_skb_one_core(skb, false);
 
 	return ret;
 }
 
-static void __netif_receive_skb_list(struct list_head *head)
+static void __netif_receive_skb_list(struct list_head* head)
 {
 	unsigned long noreclaim_flag = 0;
 	struct sk_buff *skb, *next;
 	bool pfmemalloc = false; /* Is current sublist PF_MEMALLOC? */
 
-	list_for_each_entry_safe(skb, next, head, list) {
-		if ((sk_memalloc_socks() && skb_pfmemalloc(skb)) != pfmemalloc) {
+	list_for_each_entry_safe(skb, next, head, list)
+	{
+		if ((sk_memalloc_socks() && skb_pfmemalloc(skb)) != pfmemalloc)
+		{
 			struct list_head sublist;
 
 			/* Handle the previous sublist */
@@ -5589,21 +5552,25 @@ static void __netif_receive_skb_list(struct list_head *head)
 		memalloc_noreclaim_restore(noreclaim_flag);
 }
 
-static int generic_xdp_install(struct net_device *dev, struct netdev_bpf *xdp)
+static int generic_xdp_install(struct net_device* dev, struct netdev_bpf* xdp)
 {
-	struct bpf_prog *old = rtnl_dereference(dev->xdp_prog);
-	struct bpf_prog *new = xdp->prog;
+	struct bpf_prog* old = rtnl_dereference(dev->xdp_prog);
+	struct bpf_prog* new = xdp->prog;
 	int ret = 0;
 
-	switch (xdp->command) {
+	switch (xdp->command)
+	{
 	case XDP_SETUP_PROG:
 		rcu_assign_pointer(dev->xdp_prog, new);
 		if (old)
 			bpf_prog_put(old);
 
-		if (old && !new) {
+		if (old && !new)
+		{
 			static_branch_dec(&generic_xdp_needed_key);
-		} else if (new && !old) {
+		}
+		else if (new && !old)
+		{
 			static_branch_inc(&generic_xdp_needed_key);
 			dev_disable_lro(dev);
 			dev_disable_gro_hw(dev);
@@ -5618,7 +5585,7 @@ static int generic_xdp_install(struct net_device *dev, struct netdev_bpf *xdp)
 	return ret;
 }
 
-static int netif_receive_skb_internal(struct sk_buff *skb)
+static int netif_receive_skb_internal(struct sk_buff* skb)
 {
 	int ret;
 
@@ -5629,11 +5596,13 @@ static int netif_receive_skb_internal(struct sk_buff *skb)
 
 	rcu_read_lock();
 #ifdef CONFIG_RPS
-	if (static_branch_unlikely(&rps_needed)) {
+	if (static_branch_unlikely(&rps_needed))
+	{
 		struct rps_dev_flow voidflow, *rflow = &voidflow;
 		int cpu = get_rps_cpu(skb->dev, skb, &rflow);
 
-		if (cpu >= 0) {
+		if (cpu >= 0)
+		{
 			ret = enqueue_to_backlog(skb, cpu, &rflow->last_qtail);
 			rcu_read_unlock();
 			return ret;
@@ -5645,13 +5614,14 @@ static int netif_receive_skb_internal(struct sk_buff *skb)
 	return ret;
 }
 
-static void netif_receive_skb_list_internal(struct list_head *head)
+static void netif_receive_skb_list_internal(struct list_head* head)
 {
 	struct sk_buff *skb, *next;
 	struct list_head sublist;
 
 	INIT_LIST_HEAD(&sublist);
-	list_for_each_entry_safe(skb, next, head, list) {
+	list_for_each_entry_safe(skb, next, head, list)
+	{
 		net_timestamp_check(netdev_tstamp_prequeue, skb);
 		skb_list_del_init(skb);
 		if (!skb_defer_rx_timestamp(skb))
@@ -5661,12 +5631,15 @@ static void netif_receive_skb_list_internal(struct list_head *head)
 
 	rcu_read_lock();
 #ifdef CONFIG_RPS
-	if (static_branch_unlikely(&rps_needed)) {
-		list_for_each_entry_safe(skb, next, head, list) {
+	if (static_branch_unlikely(&rps_needed))
+	{
+		list_for_each_entry_safe(skb, next, head, list)
+		{
 			struct rps_dev_flow voidflow, *rflow = &voidflow;
 			int cpu = get_rps_cpu(skb->dev, skb, &rflow);
 
-			if (cpu >= 0) {
+			if (cpu >= 0)
+			{
 				/* Will be handled, remove from list */
 				skb_list_del_init(skb);
 				enqueue_to_backlog(skb, cpu, &rflow->last_qtail);
@@ -5693,7 +5666,7 @@ static void netif_receive_skb_list_internal(struct list_head *head)
  *	NET_RX_SUCCESS: no congestion
  *	NET_RX_DROP: packet was dropped
  */
-int netif_receive_skb(struct sk_buff *skb)
+int netif_receive_skb(struct sk_buff* skb)
 {
 	int ret;
 
@@ -5716,15 +5689,15 @@ EXPORT_SYMBOL(netif_receive_skb);
  *	This function may only be called from softirq context and interrupts
  *	should be enabled.
  */
-void netif_receive_skb_list(struct list_head *head)
+void netif_receive_skb_list(struct list_head* head)
 {
-	struct sk_buff *skb;
+	struct sk_buff* skb;
 
 	if (list_empty(head))
 		return;
-	if (trace_netif_receive_skb_list_entry_enabled()) {
-		list_for_each_entry(skb, head, list)
-			trace_netif_receive_skb_list_entry(skb);
+	if (trace_netif_receive_skb_list_entry_enabled())
+	{
+		list_for_each_entry(skb, head, list) trace_netif_receive_skb_list_entry(skb);
 	}
 	netif_receive_skb_list_internal(head);
 	trace_netif_receive_skb_list_exit(0);
@@ -5734,18 +5707,20 @@ EXPORT_SYMBOL(netif_receive_skb_list);
 static DEFINE_PER_CPU(struct work_struct, flush_works);
 
 /* Network device is going away, flush any packets still pending */
-static void flush_backlog(struct work_struct *work)
+static void flush_backlog(struct work_struct* work)
 {
 	struct sk_buff *skb, *tmp;
-	struct softnet_data *sd;
+	struct softnet_data* sd;
 
 	local_bh_disable();
 	sd = this_cpu_ptr(&softnet_data);
 
 	local_irq_disable();
 	rps_lock(sd);
-	skb_queue_walk_safe(&sd->input_pkt_queue, skb, tmp) {
-		if (skb->dev->reg_state == NETREG_UNREGISTERING) {
+	skb_queue_walk_safe(&sd->input_pkt_queue, skb, tmp)
+	{
+		if (skb->dev->reg_state == NETREG_UNREGISTERING)
+		{
 			__skb_unlink(skb, &sd->input_pkt_queue);
 			dev_kfree_skb_irq(skb);
 			input_queue_head_incr(sd);
@@ -5754,8 +5729,10 @@ static void flush_backlog(struct work_struct *work)
 	rps_unlock(sd);
 	local_irq_enable();
 
-	skb_queue_walk_safe(&sd->process_queue, skb, tmp) {
-		if (skb->dev->reg_state == NETREG_UNREGISTERING) {
+	skb_queue_walk_safe(&sd->process_queue, skb, tmp)
+	{
+		if (skb->dev->reg_state == NETREG_UNREGISTERING)
+		{
 			__skb_unlink(skb, &sd->process_queue);
 			kfree_skb(skb);
 			input_queue_head_incr(sd);
@@ -5767,7 +5744,7 @@ static void flush_backlog(struct work_struct *work)
 static bool flush_required(int cpu)
 {
 #if IS_ENABLED(CONFIG_RPS)
-	struct softnet_data *sd = &per_cpu(softnet_data, cpu);
+	struct softnet_data* sd = &per_cpu(softnet_data, cpu);
 	bool do_flush;
 
 	local_irq_disable();
@@ -5776,8 +5753,7 @@ static bool flush_required(int cpu)
 	/* as insertion into process_queue happens with the rps lock held,
 	 * process_queue access may race only with dequeue
 	 */
-	do_flush = !skb_queue_empty(&sd->input_pkt_queue) ||
-		   !skb_queue_empty_lockless(&sd->process_queue);
+	do_flush = !skb_queue_empty(&sd->input_pkt_queue) || !skb_queue_empty_lockless(&sd->process_queue);
 	rps_unlock(sd);
 	local_irq_enable();
 
@@ -5805,10 +5781,11 @@ static void flush_all_backlogs(void)
 	cpus_read_lock();
 
 	cpumask_clear(&flush_cpus);
-	for_each_online_cpu(cpu) {
-		if (flush_required(cpu)) {
-			queue_work_on(cpu, system_highpri_wq,
-				      per_cpu_ptr(&flush_works, cpu));
+	for_each_online_cpu(cpu)
+	{
+		if (flush_required(cpu))
+		{
+			queue_work_on(cpu, system_highpri_wq, per_cpu_ptr(&flush_works, cpu));
 			cpumask_set_cpu(cpu, &flush_cpus);
 		}
 	}
@@ -5817,14 +5794,13 @@ static void flush_all_backlogs(void)
 	 * synchronize_net() in unregister_netdevice_many() will take care of
 	 * them
 	 */
-	for_each_cpu(cpu, &flush_cpus)
-		flush_work(per_cpu_ptr(&flush_works, cpu));
+	for_each_cpu(cpu, &flush_cpus) flush_work(per_cpu_ptr(&flush_works, cpu));
 
 	cpus_read_unlock();
 }
 
 /* Pass the currently batched GRO_NORMAL SKBs up to the stack. */
-static void gro_normal_list(struct napi_struct *napi)
+static void gro_normal_list(struct napi_struct* napi)
 {
 	if (!napi->rx_count)
 		return;
@@ -5836,7 +5812,7 @@ static void gro_normal_list(struct napi_struct *napi)
 /* Queue one GRO_NORMAL SKB up for list processing. If batch size exceeded,
  * pass the whole batch up to the stack.
  */
-static void gro_normal_one(struct napi_struct *napi, struct sk_buff *skb, int segs)
+static void gro_normal_one(struct napi_struct* napi, struct sk_buff* skb, int segs)
 {
 	list_add_tail(&skb->list, &napi->rx_list);
 	napi->rx_count += segs;
@@ -5844,33 +5820,34 @@ static void gro_normal_one(struct napi_struct *napi, struct sk_buff *skb, int se
 		gro_normal_list(napi);
 }
 
-static int napi_gro_complete(struct napi_struct *napi, struct sk_buff *skb)
+static int napi_gro_complete(struct napi_struct* napi, struct sk_buff* skb)
 {
-	struct packet_offload *ptype;
+	struct packet_offload* ptype;
 	__be16 type = skb->protocol;
-	struct list_head *head = &offload_base;
+	struct list_head* head = &offload_base;
 	int err = -ENOENT;
 
 	BUILD_BUG_ON(sizeof(struct napi_gro_cb) > sizeof(skb->cb));
 
-	if (NAPI_GRO_CB(skb)->count == 1) {
+	if (NAPI_GRO_CB(skb)->count == 1)
+	{
 		skb_shinfo(skb)->gso_size = 0;
 		goto out;
 	}
 
 	rcu_read_lock();
-	list_for_each_entry_rcu(ptype, head, list) {
+	list_for_each_entry_rcu(ptype, head, list)
+	{
 		if (ptype->type != type || !ptype->callbacks.gro_complete)
 			continue;
 
-		err = INDIRECT_CALL_INET(ptype->callbacks.gro_complete,
-					 ipv6_gro_complete, inet_gro_complete,
-					 skb, 0);
+		err = INDIRECT_CALL_INET(ptype->callbacks.gro_complete, ipv6_gro_complete, inet_gro_complete, skb, 0);
 		break;
 	}
 	rcu_read_unlock();
 
-	if (err) {
+	if (err)
+	{
 		WARN_ON(&ptype->list == head);
 		kfree_skb(skb);
 		return NET_RX_SUCCESS;
@@ -5881,13 +5858,13 @@ out:
 	return NET_RX_SUCCESS;
 }
 
-static void __napi_gro_flush_chain(struct napi_struct *napi, u32 index,
-				   bool flush_old)
+static void __napi_gro_flush_chain(struct napi_struct* napi, u32 index, bool flush_old)
 {
-	struct list_head *head = &napi->gro_hash[index].list;
+	struct list_head* head = &napi->gro_hash[index].list;
 	struct sk_buff *skb, *p;
 
-	list_for_each_entry_safe_reverse(skb, p, head, list) {
+	list_for_each_entry_safe_reverse(skb, p, head, list)
+	{
 		if (flush_old && NAPI_GRO_CB(skb)->age == jiffies)
 			return;
 		skb_list_del_init(skb);
@@ -5903,12 +5880,13 @@ static void __napi_gro_flush_chain(struct napi_struct *napi, u32 index,
  * youngest packets at the head of it.
  * Complete skbs in reverse order to reduce latencies.
  */
-void napi_gro_flush(struct napi_struct *napi, bool flush_old)
+void napi_gro_flush(struct napi_struct* napi, bool flush_old)
 {
 	unsigned long bitmask = napi->gro_bitmask;
 	unsigned int i, base = ~0U;
 
-	while ((i = ffs(bitmask)) != 0) {
+	while ((i = ffs(bitmask)) != 0)
+	{
 		bitmask >>= i;
 		base += i;
 		__napi_gro_flush_chain(napi, base, flush_old);
@@ -5916,19 +5894,20 @@ void napi_gro_flush(struct napi_struct *napi, bool flush_old)
 }
 EXPORT_SYMBOL(napi_gro_flush);
 
-static void gro_list_prepare(const struct list_head *head,
-			     const struct sk_buff *skb)
+static void gro_list_prepare(const struct list_head* head, const struct sk_buff* skb)
 {
 	unsigned int maclen = skb->dev->hard_header_len;
 	u32 hash = skb_get_hash_raw(skb);
-	struct sk_buff *p;
+	struct sk_buff* p;
 
-	list_for_each_entry(p, head, list) {
+	list_for_each_entry(p, head, list)
+	{
 		unsigned long diffs;
 
 		NAPI_GRO_CB(p)->flush = 0;
 
-		if (hash != skb_get_hash_raw(p)) {
+		if (hash != skb_get_hash_raw(p))
+		{
 			NAPI_GRO_CB(p)->same_flow = 0;
 			continue;
 		}
@@ -5939,22 +5918,20 @@ static void gro_list_prepare(const struct list_head *head,
 			diffs |= skb_vlan_tag_get(p) ^ skb_vlan_tag_get(skb);
 		diffs |= skb_metadata_differs(p, skb);
 		if (maclen == ETH_HLEN)
-			diffs |= compare_ether_header(skb_mac_header(p),
-						      skb_mac_header(skb));
+			diffs |= compare_ether_header(skb_mac_header(p), skb_mac_header(skb));
 		else if (!diffs)
-			diffs = memcmp(skb_mac_header(p),
-				       skb_mac_header(skb),
-				       maclen);
+			diffs = memcmp(skb_mac_header(p), skb_mac_header(skb), maclen);
 
 		/* in most common scenarions 'slow_gro' is 0
 		 * otherwise we are already on some slower paths
 		 * either skip all the infrequent tests altogether or
 		 * avoid trying too hard to skip each of them individually
 		 */
-		if (!diffs && unlikely(skb->slow_gro | p->slow_gro)) {
+		if (!diffs && unlikely(skb->slow_gro | p->slow_gro))
+		{
 #if IS_ENABLED(CONFIG_SKB_EXTENSIONS) && IS_ENABLED(CONFIG_NET_TC_SKB_EXT)
-			struct tc_skb_ext *skb_ext;
-			struct tc_skb_ext *p_ext;
+			struct tc_skb_ext* skb_ext;
+			struct tc_skb_ext* p_ext;
 #endif
 
 			diffs |= p->sk != skb->sk;
@@ -5975,28 +5952,25 @@ static void gro_list_prepare(const struct list_head *head,
 	}
 }
 
-static inline void skb_gro_reset_offset(struct sk_buff *skb, u32 nhoff)
+static inline void skb_gro_reset_offset(struct sk_buff* skb, u32 nhoff)
 {
-	const struct skb_shared_info *pinfo = skb_shinfo(skb);
-	const skb_frag_t *frag0 = &pinfo->frags[0];
+	const struct skb_shared_info* pinfo = skb_shinfo(skb);
+	const skb_frag_t* frag0 = &pinfo->frags[0];
 
 	NAPI_GRO_CB(skb)->data_offset = 0;
 	NAPI_GRO_CB(skb)->frag0 = NULL;
 	NAPI_GRO_CB(skb)->frag0_len = 0;
 
-	if (!skb_headlen(skb) && pinfo->nr_frags &&
-	    !PageHighMem(skb_frag_page(frag0)) &&
-	    (!NET_IP_ALIGN || !((skb_frag_off(frag0) + nhoff) & 3))) {
+	if (!skb_headlen(skb) && pinfo->nr_frags && !PageHighMem(skb_frag_page(frag0)) && (!NET_IP_ALIGN || !((skb_frag_off(frag0) + nhoff) & 3)))
+	{
 		NAPI_GRO_CB(skb)->frag0 = skb_frag_address(frag0);
-		NAPI_GRO_CB(skb)->frag0_len = min_t(unsigned int,
-						    skb_frag_size(frag0),
-						    skb->end - skb->tail);
+		NAPI_GRO_CB(skb)->frag0_len = min_t(unsigned int, skb_frag_size(frag0), skb->end - skb->tail);
 	}
 }
 
-static void gro_pull_from_frag0(struct sk_buff *skb, int grow)
+static void gro_pull_from_frag0(struct sk_buff* skb, int grow)
 {
-	struct skb_shared_info *pinfo = skb_shinfo(skb);
+	struct skb_shared_info* pinfo = skb_shinfo(skb);
 
 	BUG_ON(skb->end - skb->tail < grow);
 
@@ -6008,16 +5982,16 @@ static void gro_pull_from_frag0(struct sk_buff *skb, int grow)
 	skb_frag_off_add(&pinfo->frags[0], grow);
 	skb_frag_size_sub(&pinfo->frags[0], grow);
 
-	if (unlikely(!skb_frag_size(&pinfo->frags[0]))) {
+	if (unlikely(!skb_frag_size(&pinfo->frags[0])))
+	{
 		skb_frag_unref(skb, 0);
-		memmove(pinfo->frags, pinfo->frags + 1,
-			--pinfo->nr_frags * sizeof(pinfo->frags[0]));
+		memmove(pinfo->frags, pinfo->frags + 1, --pinfo->nr_frags * sizeof(pinfo->frags[0]));
 	}
 }
 
-static void gro_flush_oldest(struct napi_struct *napi, struct list_head *head)
+static void gro_flush_oldest(struct napi_struct* napi, struct list_head* head)
 {
-	struct sk_buff *oldest;
+	struct sk_buff* oldest;
 
 	oldest = list_last_entry(head, struct sk_buff, list);
 
@@ -6034,14 +6008,14 @@ static void gro_flush_oldest(struct napi_struct *napi, struct list_head *head)
 	napi_gro_complete(napi, oldest);
 }
 
-static enum gro_result dev_gro_receive(struct napi_struct *napi, struct sk_buff *skb)
+static enum gro_result dev_gro_receive(struct napi_struct* napi, struct sk_buff* skb)
 {
 	u32 bucket = skb_get_hash_raw(skb) & (GRO_HASH_BUCKETS - 1);
-	struct gro_list *gro_list = &napi->gro_hash[bucket];
-	struct list_head *head = &offload_base;
-	struct packet_offload *ptype;
+	struct gro_list* gro_list = &napi->gro_hash[bucket];
+	struct list_head* head = &offload_base;
+	struct packet_offload* ptype;
 	__be16 type = skb->protocol;
-	struct sk_buff *pp = NULL;
+	struct sk_buff* pp = NULL;
 	enum gro_result ret;
 	int same_flow;
 	int grow;
@@ -6052,7 +6026,8 @@ static enum gro_result dev_gro_receive(struct napi_struct *napi, struct sk_buff 
 	gro_list_prepare(&gro_list->list, skb);
 
 	rcu_read_lock();
-	list_for_each_entry_rcu(ptype, head, list) {
+	list_for_each_entry_rcu(ptype, head, list)
+	{
 		if (ptype->type != type || !ptype->callbacks.gro_receive)
 			continue;
 
@@ -6068,7 +6043,8 @@ static enum gro_result dev_gro_receive(struct napi_struct *napi, struct sk_buff 
 		NAPI_GRO_CB(skb)->gro_remcsum_start = 0;
 
 		/* Setup for GRO checksum validation */
-		switch (skb->ip_summed) {
+		switch (skb->ip_summed)
+		{
 		case CHECKSUM_COMPLETE:
 			NAPI_GRO_CB(skb)->csum = skb->csum;
 			NAPI_GRO_CB(skb)->csum_valid = 1;
@@ -6083,9 +6059,7 @@ static enum gro_result dev_gro_receive(struct napi_struct *napi, struct sk_buff 
 			NAPI_GRO_CB(skb)->csum_valid = 0;
 		}
 
-		pp = INDIRECT_CALL_INET(ptype->callbacks.gro_receive,
-					ipv6_gro_receive, inet_gro_receive,
-					&gro_list->list, skb);
+		pp = INDIRECT_CALL_INET(ptype->callbacks.gro_receive, ipv6_gro_receive, inet_gro_receive, &gro_list->list, skb);
 		break;
 	}
 	rcu_read_unlock();
@@ -6093,7 +6067,8 @@ static enum gro_result dev_gro_receive(struct napi_struct *napi, struct sk_buff 
 	if (&ptype->list == head)
 		goto normal;
 
-	if (PTR_ERR(pp) == -EINPROGRESS) {
+	if (PTR_ERR(pp) == -EINPROGRESS)
+	{
 		ret = GRO_CONSUMED;
 		goto ok;
 	}
@@ -6101,7 +6076,8 @@ static enum gro_result dev_gro_receive(struct napi_struct *napi, struct sk_buff 
 	same_flow = NAPI_GRO_CB(skb)->same_flow;
 	ret = NAPI_GRO_CB(skb)->free ? GRO_MERGED_FREE : GRO_MERGED;
 
-	if (pp) {
+	if (pp)
+	{
 		skb_list_del_init(pp);
 		napi_gro_complete(napi, pp);
 		gro_list->count--;
@@ -6130,10 +6106,13 @@ pull:
 	if (grow > 0)
 		gro_pull_from_frag0(skb, grow);
 ok:
-	if (gro_list->count) {
+	if (gro_list->count)
+	{
 		if (!test_bit(bucket, &napi->gro_bitmask))
 			__set_bit(bucket, &napi->gro_bitmask);
-	} else if (test_bit(bucket, &napi->gro_bitmask)) {
+	}
+	else if (test_bit(bucket, &napi->gro_bitmask))
+	{
 		__clear_bit(bucket, &napi->gro_bitmask);
 	}
 
@@ -6144,12 +6123,13 @@ normal:
 	goto pull;
 }
 
-struct packet_offload *gro_find_receive_by_type(__be16 type)
+struct packet_offload* gro_find_receive_by_type(__be16 type)
 {
-	struct list_head *offload_head = &offload_base;
-	struct packet_offload *ptype;
+	struct list_head* offload_head = &offload_base;
+	struct packet_offload* ptype;
 
-	list_for_each_entry_rcu(ptype, offload_head, list) {
+	list_for_each_entry_rcu(ptype, offload_head, list)
+	{
 		if (ptype->type != type || !ptype->callbacks.gro_receive)
 			continue;
 		return ptype;
@@ -6158,12 +6138,13 @@ struct packet_offload *gro_find_receive_by_type(__be16 type)
 }
 EXPORT_SYMBOL(gro_find_receive_by_type);
 
-struct packet_offload *gro_find_complete_by_type(__be16 type)
+struct packet_offload* gro_find_complete_by_type(__be16 type)
 {
-	struct list_head *offload_head = &offload_base;
-	struct packet_offload *ptype;
+	struct list_head* offload_head = &offload_base;
+	struct packet_offload* ptype;
 
-	list_for_each_entry_rcu(ptype, offload_head, list) {
+	list_for_each_entry_rcu(ptype, offload_head, list)
+	{
 		if (ptype->type != type || !ptype->callbacks.gro_complete)
 			continue;
 		return ptype;
@@ -6172,11 +6153,10 @@ struct packet_offload *gro_find_complete_by_type(__be16 type)
 }
 EXPORT_SYMBOL(gro_find_complete_by_type);
 
-static gro_result_t napi_skb_finish(struct napi_struct *napi,
-				    struct sk_buff *skb,
-				    gro_result_t ret)
+static gro_result_t napi_skb_finish(struct napi_struct* napi, struct sk_buff* skb, gro_result_t ret)
 {
-	switch (ret) {
+	switch (ret)
+	{
 	case GRO_NORMAL:
 		gro_normal_one(napi, skb, 1);
 		break;
@@ -6199,7 +6179,7 @@ static gro_result_t napi_skb_finish(struct napi_struct *napi,
 	return ret;
 }
 
-gro_result_t napi_gro_receive(struct napi_struct *napi, struct sk_buff *skb)
+gro_result_t napi_gro_receive(struct napi_struct* napi, struct sk_buff* skb)
 {
 	gro_result_t ret;
 
@@ -6215,9 +6195,10 @@ gro_result_t napi_gro_receive(struct napi_struct *napi, struct sk_buff *skb)
 }
 EXPORT_SYMBOL(napi_gro_receive);
 
-static void napi_reuse_skb(struct napi_struct *napi, struct sk_buff *skb)
+static void napi_reuse_skb(struct napi_struct* napi, struct sk_buff* skb)
 {
-	if (unlikely(skb->pfmemalloc)) {
+	if (unlikely(skb->pfmemalloc))
+	{
 		consume_skb(skb);
 		return;
 	}
@@ -6234,7 +6215,8 @@ static void napi_reuse_skb(struct napi_struct *napi, struct sk_buff *skb)
 	skb->encapsulation = 0;
 	skb_shinfo(skb)->gso_type = 0;
 	skb->truesize = SKB_TRUESIZE(skb_end_offset(skb));
-	if (unlikely(skb->slow_gro)) {
+	if (unlikely(skb->slow_gro))
+	{
 		skb_orphan(skb);
 		skb_ext_reset(skb);
 		nf_reset_ct(skb);
@@ -6244,13 +6226,15 @@ static void napi_reuse_skb(struct napi_struct *napi, struct sk_buff *skb)
 	napi->skb = skb;
 }
 
-struct sk_buff *napi_get_frags(struct napi_struct *napi)
+struct sk_buff* napi_get_frags(struct napi_struct* napi)
 {
-	struct sk_buff *skb = napi->skb;
+	struct sk_buff* skb = napi->skb;
 
-	if (!skb) {
+	if (!skb)
+	{
 		skb = napi_alloc_skb(napi, GRO_MAX_HEAD);
-		if (skb) {
+		if (skb)
+		{
 			napi->skb = skb;
 			skb_mark_napi_id(skb, napi);
 		}
@@ -6259,11 +6243,10 @@ struct sk_buff *napi_get_frags(struct napi_struct *napi)
 }
 EXPORT_SYMBOL(napi_get_frags);
 
-static gro_result_t napi_frags_finish(struct napi_struct *napi,
-				      struct sk_buff *skb,
-				      gro_result_t ret)
+static gro_result_t napi_frags_finish(struct napi_struct* napi, struct sk_buff* skb, gro_result_t ret)
 {
-	switch (ret) {
+	switch (ret)
+	{
 	case GRO_NORMAL:
 	case GRO_HELD:
 		__skb_push(skb, ETH_HLEN);
@@ -6291,10 +6274,10 @@ static gro_result_t napi_frags_finish(struct napi_struct *napi,
  * Drivers could call both napi_gro_frags() and napi_gro_receive()
  * We copy ethernet header into skb->data to have a common layout.
  */
-static struct sk_buff *napi_frags_skb(struct napi_struct *napi)
+static struct sk_buff* napi_frags_skb(struct napi_struct* napi)
 {
-	struct sk_buff *skb = napi->skb;
-	const struct ethhdr *eth;
+	struct sk_buff* skb = napi->skb;
+	const struct ethhdr* eth;
 	unsigned int hlen = sizeof(*eth);
 
 	napi->skb = NULL;
@@ -6302,16 +6285,19 @@ static struct sk_buff *napi_frags_skb(struct napi_struct *napi)
 	skb_reset_mac_header(skb);
 	skb_gro_reset_offset(skb, hlen);
 
-	if (unlikely(skb_gro_header_hard(skb, hlen))) {
+	if (unlikely(skb_gro_header_hard(skb, hlen)))
+	{
 		eth = skb_gro_header_slow(skb, hlen, 0);
-		if (unlikely(!eth)) {
-			net_warn_ratelimited("%s: dropping impossible skb from %s\n",
-					     __func__, napi->dev->name);
+		if (unlikely(!eth))
+		{
+			net_warn_ratelimited("%s: dropping impossible skb from %s\n", __func__, napi->dev->name);
 			napi_reuse_skb(napi, skb);
 			return NULL;
 		}
-	} else {
-		eth = (const struct ethhdr *)skb->data;
+	}
+	else
+	{
+		eth = (const struct ethhdr*)skb->data;
 		gro_pull_from_frag0(skb, hlen);
 		NAPI_GRO_CB(skb)->frag0 += hlen;
 		NAPI_GRO_CB(skb)->frag0_len -= hlen;
@@ -6328,10 +6314,10 @@ static struct sk_buff *napi_frags_skb(struct napi_struct *napi)
 	return skb;
 }
 
-gro_result_t napi_gro_frags(struct napi_struct *napi)
+gro_result_t napi_gro_frags(struct napi_struct* napi)
 {
 	gro_result_t ret;
-	struct sk_buff *skb = napi_frags_skb(napi);
+	struct sk_buff* skb = napi_frags_skb(napi);
 
 	trace_napi_gro_frags_entry(skb);
 
@@ -6345,7 +6331,7 @@ EXPORT_SYMBOL(napi_gro_frags);
 /* Compute the checksum from gro_offset and return the folded value
  * after adding in any pseudo checksum.
  */
-__sum16 __skb_gro_checksum_complete(struct sk_buff *skb)
+__sum16 __skb_gro_checksum_complete(struct sk_buff* skb)
 {
 	__wsum wsum;
 	__sum16 sum;
@@ -6355,9 +6341,9 @@ __sum16 __skb_gro_checksum_complete(struct sk_buff *skb)
 	/* NAPI_GRO_CB(skb)->csum holds pseudo checksum */
 	sum = csum_fold(csum_add(NAPI_GRO_CB(skb)->csum, wsum));
 	/* See comments in __skb_checksum_complete(). */
-	if (likely(!sum)) {
-		if (unlikely(skb->ip_summed == CHECKSUM_COMPLETE) &&
-		    !skb->csum_complete_sw)
+	if (likely(!sum))
+	{
+		if (unlikely(skb->ip_summed == CHECKSUM_COMPLETE) && !skb->csum_complete_sw)
 			netdev_rx_csum_fault(skb->dev, skb);
 	}
 
@@ -6368,11 +6354,12 @@ __sum16 __skb_gro_checksum_complete(struct sk_buff *skb)
 }
 EXPORT_SYMBOL(__skb_gro_checksum_complete);
 
-static void net_rps_send_ipi(struct softnet_data *remsd)
+static void net_rps_send_ipi(struct softnet_data* remsd)
 {
 #ifdef CONFIG_RPS
-	while (remsd) {
-		struct softnet_data *next = remsd->rps_ipi_next;
+	while (remsd)
+	{
+		struct softnet_data* next = remsd->rps_ipi_next;
 
 		if (cpu_online(remsd->cpu))
 			smp_call_function_single_async(remsd->cpu, &remsd->csd);
@@ -6385,24 +6372,26 @@ static void net_rps_send_ipi(struct softnet_data *remsd)
  * net_rps_action_and_irq_enable sends any pending IPI's for rps.
  * Note: called with local irq disabled, but exits with local irq enabled.
  */
-static void net_rps_action_and_irq_enable(struct softnet_data *sd)
+static void net_rps_action_and_irq_enable(struct softnet_data* sd)
 {
 #ifdef CONFIG_RPS
-	struct softnet_data *remsd = sd->rps_ipi_list;
+	struct softnet_data* remsd = sd->rps_ipi_list;
 
-	if (remsd) {
+	if (remsd)
+	{
 		sd->rps_ipi_list = NULL;
 
 		local_irq_enable();
 
 		/* Send pending IPI's to kick RPS processing on remote cpus. */
 		net_rps_send_ipi(remsd);
-	} else
+	}
+	else
 #endif
 		local_irq_enable();
 }
 
-static bool sd_has_rps_ipi_waiting(struct softnet_data *sd)
+static bool sd_has_rps_ipi_waiting(struct softnet_data* sd)
 {
 #ifdef CONFIG_RPS
 	return sd->rps_ipi_list != NULL;
@@ -6411,37 +6400,40 @@ static bool sd_has_rps_ipi_waiting(struct softnet_data *sd)
 #endif
 }
 
-static int process_backlog(struct napi_struct *napi, int quota)
+static int process_backlog(struct napi_struct* napi, int quota)
 {
-	struct softnet_data *sd = container_of(napi, struct softnet_data, backlog);
+	struct softnet_data* sd = container_of(napi, struct softnet_data, backlog);
 	bool again = true;
 	int work = 0;
 
 	/* Check if we have pending ipi, its better to send them now,
 	 * not waiting net_rx_action() end.
 	 */
-	if (sd_has_rps_ipi_waiting(sd)) {
+	if (sd_has_rps_ipi_waiting(sd))
+	{
 		local_irq_disable();
 		net_rps_action_and_irq_enable(sd);
 	}
 
 	napi->weight = dev_rx_weight;
-	while (again) {
-		struct sk_buff *skb;
+	while (again)
+	{
+		struct sk_buff* skb;
 
-		while ((skb = __skb_dequeue(&sd->process_queue))) {
+		while ((skb = __skb_dequeue(&sd->process_queue)))
+		{
 			rcu_read_lock();
 			__netif_receive_skb(skb);
 			rcu_read_unlock();
 			input_queue_head_incr(sd);
 			if (++work >= quota)
 				return work;
-
 		}
 
 		local_irq_disable();
 		rps_lock(sd);
-		if (skb_queue_empty(&sd->input_pkt_queue)) {
+		if (skb_queue_empty(&sd->input_pkt_queue))
+		{
 			/*
 			 * Inline a custom version of __napi_complete().
 			 * only current cpu owns and manipulates this napi,
@@ -6452,9 +6444,10 @@ static int process_backlog(struct napi_struct *napi, int quota)
 			 */
 			napi->state = 0;
 			again = false;
-		} else {
-			skb_queue_splice_tail_init(&sd->input_pkt_queue,
-						   &sd->process_queue);
+		}
+		else
+		{
+			skb_queue_splice_tail_init(&sd->input_pkt_queue, &sd->process_queue);
 		}
 		rps_unlock(sd);
 		local_irq_enable();
@@ -6470,7 +6463,7 @@ static int process_backlog(struct napi_struct *napi, int quota)
  * The entry's receive function will be scheduled to run.
  * Consider using __napi_schedule_irqoff() if hard irqs are masked.
  */
-void __napi_schedule(struct napi_struct *n)
+void __napi_schedule(struct napi_struct* n)
 {
 	unsigned long flags;
 
@@ -6489,11 +6482,12 @@ EXPORT_SYMBOL(__napi_schedule);
  * insure only one NAPI poll instance runs.  We also make
  * sure there is no pending NAPI disable.
  */
-bool napi_schedule_prep(struct napi_struct *n)
+bool napi_schedule_prep(struct napi_struct* n)
 {
 	unsigned long val, new;
 
-	do {
+	do
+	{
 		val = READ_ONCE(n->state);
 		if (unlikely(val & NAPIF_STATE_DISABLE))
 			return false;
@@ -6505,8 +6499,7 @@ bool napi_schedule_prep(struct napi_struct *n)
 		 * if (val & NAPIF_STATE_SCHED)
 		 *     new |= NAPIF_STATE_MISSED;
 		 */
-		new |= (val & NAPIF_STATE_SCHED) / NAPIF_STATE_SCHED *
-						   NAPIF_STATE_MISSED;
+		new |= (val & NAPIF_STATE_SCHED) / NAPIF_STATE_SCHED* NAPIF_STATE_MISSED;
 	} while (cmpxchg(&n->state, val, new) != val);
 
 	return !(val & NAPIF_STATE_SCHED);
@@ -6523,7 +6516,7 @@ EXPORT_SYMBOL(napi_schedule_prep);
  * because the interrupt disabled assumption might not be true
  * due to force-threaded interrupts and spinlock substitution.
  */
-void __napi_schedule_irqoff(struct napi_struct *n)
+void __napi_schedule_irqoff(struct napi_struct* n)
 {
 	if (!IS_ENABLED(CONFIG_PREEMPT_RT))
 		____napi_schedule(this_cpu_ptr(&softnet_data), n);
@@ -6532,7 +6525,7 @@ void __napi_schedule_irqoff(struct napi_struct *n)
 }
 EXPORT_SYMBOL(__napi_schedule_irqoff);
 
-bool napi_complete_done(struct napi_struct *n, int work_done)
+bool napi_complete_done(struct napi_struct* n, int work_done)
 {
 	unsigned long flags, val, new, timeout = 0;
 	bool ret = true;
@@ -6543,22 +6536,24 @@ bool napi_complete_done(struct napi_struct *n, int work_done)
 	 * 2) If we are busy polling, do nothing here, we have
 	 *    the guarantee we will be called later.
 	 */
-	if (unlikely(n->state & (NAPIF_STATE_NPSVC |
-				 NAPIF_STATE_IN_BUSY_POLL)))
+	if (unlikely(n->state & (NAPIF_STATE_NPSVC | NAPIF_STATE_IN_BUSY_POLL)))
 		return false;
 
-	if (work_done) {
+	if (work_done)
+	{
 		if (n->gro_bitmask)
 			timeout = READ_ONCE(n->dev->gro_flush_timeout);
 		n->defer_hard_irqs_count = READ_ONCE(n->dev->napi_defer_hard_irqs);
 	}
-	if (n->defer_hard_irqs_count > 0) {
+	if (n->defer_hard_irqs_count > 0)
+	{
 		n->defer_hard_irqs_count--;
 		timeout = READ_ONCE(n->dev->gro_flush_timeout);
 		if (timeout)
 			ret = false;
 	}
-	if (n->gro_bitmask) {
+	if (n->gro_bitmask)
+	{
 		/* When the NAPI instance uses a timeout and keeps postponing
 		 * it, we need to bound somehow the time packets are kept in
 		 * the GRO layer
@@ -6568,66 +6563,65 @@ bool napi_complete_done(struct napi_struct *n, int work_done)
 
 	gro_normal_list(n);
 
-	if (unlikely(!list_empty(&n->poll_list))) {
+	if (unlikely(!list_empty(&n->poll_list)))
+	{
 		/* If n->poll_list is not empty, we need to mask irqs */
 		local_irq_save(flags);
 		list_del_init(&n->poll_list);
 		local_irq_restore(flags);
 	}
 
-	do {
+	do
+	{
 		val = READ_ONCE(n->state);
 
 		WARN_ON_ONCE(!(val & NAPIF_STATE_SCHED));
 
-		new = val & ~(NAPIF_STATE_MISSED | NAPIF_STATE_SCHED |
-			      NAPIF_STATE_SCHED_THREADED |
-			      NAPIF_STATE_PREFER_BUSY_POLL);
+		new = val & ~(NAPIF_STATE_MISSED | NAPIF_STATE_SCHED | NAPIF_STATE_SCHED_THREADED | NAPIF_STATE_PREFER_BUSY_POLL);
 
 		/* If STATE_MISSED was set, leave STATE_SCHED set,
 		 * because we will call napi->poll() one more time.
 		 * This C code was suggested by Alexander Duyck to help gcc.
 		 */
-		new |= (val & NAPIF_STATE_MISSED) / NAPIF_STATE_MISSED *
-						    NAPIF_STATE_SCHED;
+		new |= (val & NAPIF_STATE_MISSED) / NAPIF_STATE_MISSED* NAPIF_STATE_SCHED;
 	} while (cmpxchg(&n->state, val, new) != val);
 
-	if (unlikely(val & NAPIF_STATE_MISSED)) {
+	if (unlikely(val & NAPIF_STATE_MISSED))
+	{
 		__napi_schedule(n);
 		return false;
 	}
 
 	if (timeout)
-		hrtimer_start(&n->timer, ns_to_ktime(timeout),
-			      HRTIMER_MODE_REL_PINNED);
+		hrtimer_start(&n->timer, ns_to_ktime(timeout), HRTIMER_MODE_REL_PINNED);
 	return ret;
 }
 EXPORT_SYMBOL(napi_complete_done);
 
 /* must be called under rcu_read_lock(), as we dont take a reference */
-static struct napi_struct *napi_by_id(unsigned int napi_id)
+static struct napi_struct* napi_by_id(unsigned int napi_id)
 {
 	unsigned int hash = napi_id % HASH_SIZE(napi_hash);
-	struct napi_struct *napi;
+	struct napi_struct* napi;
 
-	hlist_for_each_entry_rcu(napi, &napi_hash[hash], napi_hash_node)
-		if (napi->napi_id == napi_id)
-			return napi;
+	hlist_for_each_entry_rcu(napi, &napi_hash[hash], napi_hash_node) if (napi->napi_id == napi_id) return napi;
 
 	return NULL;
 }
 
 #if defined(CONFIG_NET_RX_BUSY_POLL)
 
-static void __busy_poll_stop(struct napi_struct *napi, bool skip_schedule)
+static void __busy_poll_stop(struct napi_struct* napi, bool skip_schedule)
 {
-	if (!skip_schedule) {
+	if (!skip_schedule)
+	{
 		gro_normal_list(napi);
 		__napi_schedule(napi);
 		return;
 	}
 
-	if (napi->gro_bitmask) {
+	if (napi->gro_bitmask)
+	{
 		/* flush too old packets
 		 * If HZ < 1000, flush all packets.
 		 */
@@ -6638,8 +6632,7 @@ static void __busy_poll_stop(struct napi_struct *napi, bool skip_schedule)
 	clear_bit(NAPI_STATE_SCHED, &napi->state);
 }
 
-static void busy_poll_stop(struct napi_struct *napi, void *have_poll_lock, bool prefer_busy_poll,
-			   u16 budget)
+static void busy_poll_stop(struct napi_struct* napi, void* have_poll_lock, bool prefer_busy_poll, u16 budget)
 {
 	bool skip_schedule = false;
 	unsigned long timeout;
@@ -6659,10 +6652,12 @@ static void busy_poll_stop(struct napi_struct *napi, void *have_poll_lock, bool 
 
 	local_bh_disable();
 
-	if (prefer_busy_poll) {
+	if (prefer_busy_poll)
+	{
 		napi->defer_hard_irqs_count = READ_ONCE(napi->dev->napi_defer_hard_irqs);
 		timeout = READ_ONCE(napi->dev->gro_flush_timeout);
-		if (napi->defer_hard_irqs_count && timeout) {
+		if (napi->defer_hard_irqs_count && timeout)
+		{
 			hrtimer_start(&napi->timer, ns_to_ktime(timeout), HRTIMER_MODE_REL_PINNED);
 			skip_schedule = true;
 		}
@@ -6683,14 +6678,12 @@ static void busy_poll_stop(struct napi_struct *napi, void *have_poll_lock, bool 
 	local_bh_enable();
 }
 
-void napi_busy_loop(unsigned int napi_id,
-		    bool (*loop_end)(void *, unsigned long),
-		    void *loop_end_arg, bool prefer_busy_poll, u16 budget)
+void napi_busy_loop(unsigned int napi_id, bool (*loop_end)(void*, unsigned long), void* loop_end_arg, bool prefer_busy_poll, u16 budget)
 {
 	unsigned long start_time = loop_end ? busy_loop_current_time() : 0;
-	int (*napi_poll)(struct napi_struct *napi, int budget);
-	void *have_poll_lock = NULL;
-	struct napi_struct *napi;
+	int (*napi_poll)(struct napi_struct* napi, int budget);
+	void* have_poll_lock = NULL;
+	struct napi_struct* napi;
 
 restart:
 	napi_poll = NULL;
@@ -6702,25 +6695,26 @@ restart:
 		goto out;
 
 	preempt_disable();
-	for (;;) {
+	for (;;)
+	{
 		int work = 0;
 
 		local_bh_disable();
-		if (!napi_poll) {
+		if (!napi_poll)
+		{
 			unsigned long val = READ_ONCE(napi->state);
 
 			/* If multiple threads are competing for this napi,
 			 * we avoid dirtying napi->state as much as we can.
 			 */
-			if (val & (NAPIF_STATE_DISABLE | NAPIF_STATE_SCHED |
-				   NAPIF_STATE_IN_BUSY_POLL)) {
+			if (val & (NAPIF_STATE_DISABLE | NAPIF_STATE_SCHED | NAPIF_STATE_IN_BUSY_POLL))
+			{
 				if (prefer_busy_poll)
 					set_bit(NAPI_STATE_PREFER_BUSY_POLL, &napi->state);
 				goto count;
 			}
-			if (cmpxchg(&napi->state, val,
-				    val | NAPIF_STATE_IN_BUSY_POLL |
-					  NAPIF_STATE_SCHED) != val) {
+			if (cmpxchg(&napi->state, val, val | NAPIF_STATE_IN_BUSY_POLL | NAPIF_STATE_SCHED) != val)
+			{
 				if (prefer_busy_poll)
 					set_bit(NAPI_STATE_PREFER_BUSY_POLL, &napi->state);
 				goto count;
@@ -6731,16 +6725,16 @@ restart:
 		work = napi_poll(napi, budget);
 		trace_napi_poll(napi, work, budget);
 		gro_normal_list(napi);
-count:
+	count:
 		if (work > 0)
-			__NET_ADD_STATS(dev_net(napi->dev),
-					LINUX_MIB_BUSYPOLLRXPACKETS, work);
+			__NET_ADD_STATS(dev_net(napi->dev), LINUX_MIB_BUSYPOLLRXPACKETS, work);
 		local_bh_enable();
 
 		if (!loop_end || loop_end(loop_end_arg, start_time))
 			break;
 
-		if (unlikely(need_resched())) {
+		if (unlikely(need_resched()))
+		{
 			if (napi_poll)
 				busy_poll_stop(napi, have_poll_lock, prefer_busy_poll, budget);
 			preempt_enable();
@@ -6762,7 +6756,7 @@ EXPORT_SYMBOL(napi_busy_loop);
 
 #endif /* CONFIG_NET_RX_BUSY_POLL */
 
-static void napi_hash_add(struct napi_struct *napi)
+static void napi_hash_add(struct napi_struct* napi)
 {
 	if (test_bit(NAPI_STATE_NO_BUSY_POLL, &napi->state))
 		return;
@@ -6770,14 +6764,14 @@ static void napi_hash_add(struct napi_struct *napi)
 	spin_lock(&napi_hash_lock);
 
 	/* 0..NR_CPUS range is reserved for sender_cpu use */
-	do {
+	do
+	{
 		if (unlikely(++napi_gen_id < MIN_NAPI_ID))
 			napi_gen_id = MIN_NAPI_ID;
 	} while (napi_by_id(napi_gen_id));
 	napi->napi_id = napi_gen_id;
 
-	hlist_add_head_rcu(&napi->napi_hash_node,
-			   &napi_hash[napi->napi_id % HASH_SIZE(napi_hash)]);
+	hlist_add_head_rcu(&napi->napi_hash_node, &napi_hash[napi->napi_id % HASH_SIZE(napi_hash)]);
 
 	spin_unlock(&napi_hash_lock);
 }
@@ -6785,7 +6779,7 @@ static void napi_hash_add(struct napi_struct *napi)
 /* Warning : caller is responsible to make sure rcu grace period
  * is respected before freeing memory containing @napi
  */
-static void napi_hash_del(struct napi_struct *napi)
+static void napi_hash_del(struct napi_struct* napi)
 {
 	spin_lock(&napi_hash_lock);
 
@@ -6794,17 +6788,17 @@ static void napi_hash_del(struct napi_struct *napi)
 	spin_unlock(&napi_hash_lock);
 }
 
-static enum hrtimer_restart napi_watchdog(struct hrtimer *timer)
+static enum hrtimer_restart napi_watchdog(struct hrtimer* timer)
 {
-	struct napi_struct *napi;
+	struct napi_struct* napi;
 
 	napi = container_of(timer, struct napi_struct, timer);
 
 	/* Note : we use a relaxed variant of napi_schedule_prep() not setting
 	 * NAPI_STATE_MISSED, since we do not react to a device IRQ.
 	 */
-	if (!napi_disable_pending(napi) &&
-	    !test_and_set_bit(NAPI_STATE_SCHED, &napi->state)) {
+	if (!napi_disable_pending(napi) && !test_and_set_bit(NAPI_STATE_SCHED, &napi->state))
+	{
 		clear_bit(NAPI_STATE_PREFER_BUSY_POLL, &napi->state);
 		__napi_schedule_irqoff(napi);
 	}
@@ -6812,30 +6806,35 @@ static enum hrtimer_restart napi_watchdog(struct hrtimer *timer)
 	return HRTIMER_NORESTART;
 }
 
-static void init_gro_hash(struct napi_struct *napi)
+static void init_gro_hash(struct napi_struct* napi)
 {
 	int i;
 
-	for (i = 0; i < GRO_HASH_BUCKETS; i++) {
+	for (i = 0; i < GRO_HASH_BUCKETS; i++)
+	{
 		INIT_LIST_HEAD(&napi->gro_hash[i].list);
 		napi->gro_hash[i].count = 0;
 	}
 	napi->gro_bitmask = 0;
 }
 
-int dev_set_threaded(struct net_device *dev, bool threaded)
+int dev_set_threaded(struct net_device* dev, bool threaded)
 {
-	struct napi_struct *napi;
+	struct napi_struct* napi;
 	int err = 0;
 
 	if (dev->threaded == threaded)
 		return 0;
 
-	if (threaded) {
-		list_for_each_entry(napi, &dev->napi_list, dev_list) {
-			if (!napi->thread) {
+	if (threaded)
+	{
+		list_for_each_entry(napi, &dev->napi_list, dev_list)
+		{
+			if (!napi->thread)
+			{
 				err = napi_kthread_create(napi);
-				if (err) {
+				if (err)
+				{
 					threaded = false;
 					break;
 				}
@@ -6856,7 +6855,8 @@ int dev_set_threaded(struct net_device *dev, bool threaded)
 	 * softirq mode will happen in the next round of napi_schedule().
 	 * This should not cause hiccups/stalls to the live traffic.
 	 */
-	list_for_each_entry(napi, &dev->napi_list, dev_list) {
+	list_for_each_entry(napi, &dev->napi_list, dev_list)
+	{
 		if (threaded)
 			set_bit(NAPI_STATE_THREADED, &napi->state);
 		else
@@ -6867,8 +6867,7 @@ int dev_set_threaded(struct net_device *dev, bool threaded)
 }
 EXPORT_SYMBOL(dev_set_threaded);
 
-void netif_napi_add(struct net_device *dev, struct napi_struct *napi,
-		    int (*poll)(struct napi_struct *, int), int weight)
+void netif_napi_add(struct net_device* dev, struct napi_struct* napi, int (*poll)(struct napi_struct*, int), int weight)
 {
 	if (WARN_ON(test_and_set_bit(NAPI_STATE_LISTED, &napi->state)))
 		return;
@@ -6883,8 +6882,7 @@ void netif_napi_add(struct net_device *dev, struct napi_struct *napi,
 	napi->rx_count = 0;
 	napi->poll = poll;
 	if (weight > NAPI_POLL_WEIGHT)
-		netdev_err_once(dev, "%s() called with weight %d\n", __func__,
-				weight);
+		netdev_err_once(dev, "%s() called with weight %d\n", __func__, weight);
 	napi->weight = weight;
 	napi->dev = dev;
 #ifdef CONFIG_NETPOLL
@@ -6903,7 +6901,7 @@ void netif_napi_add(struct net_device *dev, struct napi_struct *napi,
 }
 EXPORT_SYMBOL(netif_napi_add);
 
-void napi_disable(struct napi_struct *n)
+void napi_disable(struct napi_struct* n)
 {
 	might_sleep();
 	set_bit(NAPI_STATE_DISABLE, &n->state);
@@ -6928,11 +6926,12 @@ EXPORT_SYMBOL(napi_disable);
  * Resume NAPI from being scheduled on this context.
  * Must be paired with napi_disable.
  */
-void napi_enable(struct napi_struct *n)
+void napi_enable(struct napi_struct* n)
 {
 	unsigned long val, new;
 
-	do {
+	do
+	{
 		val = READ_ONCE(n->state);
 		BUG_ON(!test_bit(NAPI_STATE_SCHED, &val));
 
@@ -6943,21 +6942,21 @@ void napi_enable(struct napi_struct *n)
 }
 EXPORT_SYMBOL(napi_enable);
 
-static void flush_gro_hash(struct napi_struct *napi)
+static void flush_gro_hash(struct napi_struct* napi)
 {
 	int i;
 
-	for (i = 0; i < GRO_HASH_BUCKETS; i++) {
+	for (i = 0; i < GRO_HASH_BUCKETS; i++)
+	{
 		struct sk_buff *skb, *n;
 
-		list_for_each_entry_safe(skb, n, &napi->gro_hash[i].list, list)
-			kfree_skb(skb);
+		list_for_each_entry_safe(skb, n, &napi->gro_hash[i].list, list) kfree_skb(skb);
 		napi->gro_hash[i].count = 0;
 	}
 }
 
 /* Must be called in process context */
-void __netif_napi_del(struct napi_struct *napi)
+void __netif_napi_del(struct napi_struct* napi)
 {
 	if (!test_and_clear_bit(NAPI_STATE_LISTED, &napi->state))
 		return;
@@ -6969,14 +6968,15 @@ void __netif_napi_del(struct napi_struct *napi)
 	flush_gro_hash(napi);
 	napi->gro_bitmask = 0;
 
-	if (napi->thread) {
+	if (napi->thread)
+	{
 		kthread_stop(napi->thread);
 		napi->thread = NULL;
 	}
 }
 EXPORT_SYMBOL(__netif_napi_del);
 
-static int __napi_poll(struct napi_struct *n, bool *repoll)
+static int __napi_poll(struct napi_struct* n, bool* repoll)
 {
 	int work, weight;
 
@@ -6989,14 +6989,14 @@ static int __napi_poll(struct napi_struct *n, bool *repoll)
 	 * accidentally calling ->poll() when NAPI is not scheduled.
 	 */
 	work = 0;
-	if (test_bit(NAPI_STATE_SCHED, &n->state)) {
+	if (test_bit(NAPI_STATE_SCHED, &n->state))
+	{
 		work = n->poll(n, weight);
 		trace_napi_poll(n, work, weight);
 	}
 
 	if (unlikely(work > weight))
-		pr_err_once("NAPI poll function %pS returned %d, exceeding its budget of %d.\n",
-			    n->poll, work, weight);
+		pr_err_once("NAPI poll function %pS returned %d, exceeding its budget of %d.\n", n->poll, work, weight);
 
 	if (likely(work < weight))
 		return work;
@@ -7006,7 +7006,8 @@ static int __napi_poll(struct napi_struct *n, bool *repoll)
 	 * still "owns" the NAPI instance and therefore can
 	 * move the instance around on the list at-will.
 	 */
-	if (unlikely(napi_disable_pending(n))) {
+	if (unlikely(napi_disable_pending(n)))
+	{
 		napi_complete(n);
 		return work;
 	}
@@ -7014,8 +7015,10 @@ static int __napi_poll(struct napi_struct *n, bool *repoll)
 	/* The NAPI context has more processing work, but busy-polling
 	 * is preferred. Exit early.
 	 */
-	if (napi_prefer_busy_poll(n)) {
-		if (napi_complete_done(n, work)) {
+	if (napi_prefer_busy_poll(n))
+	{
+		if (napi_complete_done(n, work))
+		{
 			/* If timeout is not set, we need to make sure
 			 * that the NAPI is re-scheduled.
 			 */
@@ -7024,7 +7027,8 @@ static int __napi_poll(struct napi_struct *n, bool *repoll)
 		return work;
 	}
 
-	if (n->gro_bitmask) {
+	if (n->gro_bitmask)
+	{
 		/* flush too old packets
 		 * If HZ < 1000, flush all packets.
 		 */
@@ -7036,9 +7040,9 @@ static int __napi_poll(struct napi_struct *n, bool *repoll)
 	/* Some drivers may have called napi_schedule
 	 * prior to exhausting their budget.
 	 */
-	if (unlikely(!list_empty(&n->poll_list))) {
-		pr_warn_once("%s: Budget exhausted after napi rescheduled\n",
-			     n->dev ? n->dev->name : "backlog");
+	if (unlikely(!list_empty(&n->poll_list)))
+	{
+		pr_warn_once("%s: Budget exhausted after napi rescheduled\n", n->dev ? n->dev->name : "backlog");
 		return work;
 	}
 
@@ -7047,10 +7051,10 @@ static int __napi_poll(struct napi_struct *n, bool *repoll)
 	return work;
 }
 
-static int napi_poll(struct napi_struct *n, struct list_head *repoll)
+static int napi_poll(struct napi_struct* n, struct list_head* repoll)
 {
 	bool do_repoll = false;
-	void *have;
+	void* have;
 	int work;
 
 	list_del_init(&n->poll_list);
@@ -7067,19 +7071,21 @@ static int napi_poll(struct napi_struct *n, struct list_head *repoll)
 	return work;
 }
 
-static int napi_thread_wait(struct napi_struct *napi)
+static int napi_thread_wait(struct napi_struct* napi)
 {
 	bool woken = false;
 
 	set_current_state(TASK_INTERRUPTIBLE);
 
-	while (!kthread_should_stop()) {
+	while (!kthread_should_stop())
+	{
 		/* Testing SCHED_THREADED bit here to make sure the current
 		 * kthread owns this napi and could poll on this napi.
 		 * Testing SCHED bit is not enough because SCHED bit might be
 		 * set by some other busy poll thread or by napi_disable().
 		 */
-		if (test_bit(NAPI_STATE_SCHED_THREADED, &napi->state) || woken) {
+		if (test_bit(NAPI_STATE_SCHED_THREADED, &napi->state) || woken)
+		{
 			WARN_ON(!list_empty(&napi->poll_list));
 			__set_current_state(TASK_RUNNING);
 			return 0;
@@ -7095,13 +7101,15 @@ static int napi_thread_wait(struct napi_struct *napi)
 	return -1;
 }
 
-static int napi_threaded_poll(void *data)
+static int napi_threaded_poll(void* data)
 {
-	struct napi_struct *napi = data;
-	void *have;
+	struct napi_struct* napi = data;
+	void* have;
 
-	while (!napi_thread_wait(napi)) {
-		for (;;) {
+	while (!napi_thread_wait(napi))
+	{
+		for (;;)
+		{
 			bool repoll = false;
 
 			local_bh_disable();
@@ -7121,11 +7129,10 @@ static int napi_threaded_poll(void *data)
 	return 0;
 }
 
-static __latent_entropy void net_rx_action(struct softirq_action *h)
+static __latent_entropy void net_rx_action(struct softirq_action* h)
 {
-	struct softnet_data *sd = this_cpu_ptr(&softnet_data);
-	unsigned long time_limit = jiffies +
-		usecs_to_jiffies(netdev_budget_usecs);
+	struct softnet_data* sd = this_cpu_ptr(&softnet_data);
+	unsigned long time_limit = jiffies + usecs_to_jiffies(netdev_budget_usecs);
 	int budget = netdev_budget;
 	LIST_HEAD(list);
 	LIST_HEAD(repoll);
@@ -7134,10 +7141,12 @@ static __latent_entropy void net_rx_action(struct softirq_action *h)
 	list_splice_init(&sd->poll_list, &list);
 	local_irq_enable();
 
-	for (;;) {
-		struct napi_struct *n;
+	for (;;)
+	{
+		struct napi_struct* n;
 
-		if (list_empty(&list)) {
+		if (list_empty(&list))
+		{
 			if (!sd_has_rps_ipi_waiting(sd) && list_empty(&repoll))
 				return;
 			break;
@@ -7150,8 +7159,8 @@ static __latent_entropy void net_rx_action(struct softirq_action *h)
 		 * Allow this to run for 2 jiffies since which will allow
 		 * an average latency of 1.5/HZ.
 		 */
-		if (unlikely(budget <= 0 ||
-			     time_after_eq(jiffies, time_limit))) {
+		if (unlikely(budget <= 0 || time_after_eq(jiffies, time_limit)))
+		{
 			sd->time_squeeze++;
 			break;
 		}
@@ -7168,8 +7177,9 @@ static __latent_entropy void net_rx_action(struct softirq_action *h)
 	net_rps_action_and_irq_enable(sd);
 }
 
-struct netdev_adjacent {
-	struct net_device *dev;
+struct netdev_adjacent
+{
+	struct net_device* dev;
 
 	/* upper master flag, there can only be one master device per list */
 	bool master;
@@ -7181,28 +7191,27 @@ struct netdev_adjacent {
 	u16 ref_nr;
 
 	/* private field for the users */
-	void *private;
+	void* private;
 
 	struct list_head list;
 	struct rcu_head rcu;
 };
 
-static struct netdev_adjacent *__netdev_find_adj(struct net_device *adj_dev,
-						 struct list_head *adj_list)
+static struct netdev_adjacent* __netdev_find_adj(struct net_device* adj_dev, struct list_head* adj_list)
 {
-	struct netdev_adjacent *adj;
+	struct netdev_adjacent* adj;
 
-	list_for_each_entry(adj, adj_list, list) {
+	list_for_each_entry(adj, adj_list, list)
+	{
 		if (adj->dev == adj_dev)
 			return adj;
 	}
 	return NULL;
 }
 
-static int ____netdev_has_upper_dev(struct net_device *upper_dev,
-				    struct netdev_nested_priv *priv)
+static int ____netdev_has_upper_dev(struct net_device* upper_dev, struct netdev_nested_priv* priv)
 {
-	struct net_device *dev = (struct net_device *)priv->data;
+	struct net_device* dev = (struct net_device*)priv->data;
 
 	return upper_dev == dev;
 }
@@ -7216,17 +7225,15 @@ static int ____netdev_has_upper_dev(struct net_device *upper_dev,
  * in case it is. Note that this checks only immediate upper device,
  * not through a complete stack of devices. The caller must hold the RTNL lock.
  */
-bool netdev_has_upper_dev(struct net_device *dev,
-			  struct net_device *upper_dev)
+bool netdev_has_upper_dev(struct net_device* dev, struct net_device* upper_dev)
 {
 	struct netdev_nested_priv priv = {
-		.data = (void *)upper_dev,
+		.data = (void*)upper_dev,
 	};
 
 	ASSERT_RTNL();
 
-	return netdev_walk_all_upper_dev_rcu(dev, ____netdev_has_upper_dev,
-					     &priv);
+	return netdev_walk_all_upper_dev_rcu(dev, ____netdev_has_upper_dev, &priv);
 }
 EXPORT_SYMBOL(netdev_has_upper_dev);
 
@@ -7240,15 +7247,13 @@ EXPORT_SYMBOL(netdev_has_upper_dev);
  * The caller must hold rcu lock.
  */
 
-bool netdev_has_upper_dev_all_rcu(struct net_device *dev,
-				  struct net_device *upper_dev)
+bool netdev_has_upper_dev_all_rcu(struct net_device* dev, struct net_device* upper_dev)
 {
 	struct netdev_nested_priv priv = {
-		.data = (void *)upper_dev,
+		.data = (void*)upper_dev,
 	};
 
-	return !!netdev_walk_all_upper_dev_rcu(dev, ____netdev_has_upper_dev,
-					       &priv);
+	return !!netdev_walk_all_upper_dev_rcu(dev, ____netdev_has_upper_dev, &priv);
 }
 EXPORT_SYMBOL(netdev_has_upper_dev_all_rcu);
 
@@ -7259,7 +7264,7 @@ EXPORT_SYMBOL(netdev_has_upper_dev_all_rcu);
  * Find out if a device is linked to an upper device and return true in case
  * it is. The caller must hold the RTNL lock.
  */
-bool netdev_has_any_upper_dev(struct net_device *dev)
+bool netdev_has_any_upper_dev(struct net_device* dev)
 {
 	ASSERT_RTNL();
 
@@ -7274,34 +7279,32 @@ EXPORT_SYMBOL(netdev_has_any_upper_dev);
  * Find a master upper device and return pointer to it or NULL in case
  * it's not there. The caller must hold the RTNL lock.
  */
-struct net_device *netdev_master_upper_dev_get(struct net_device *dev)
+struct net_device* netdev_master_upper_dev_get(struct net_device* dev)
 {
-	struct netdev_adjacent *upper;
+	struct netdev_adjacent* upper;
 
 	ASSERT_RTNL();
 
 	if (list_empty(&dev->adj_list.upper))
 		return NULL;
 
-	upper = list_first_entry(&dev->adj_list.upper,
-				 struct netdev_adjacent, list);
+	upper = list_first_entry(&dev->adj_list.upper, struct netdev_adjacent, list);
 	if (likely(upper->master))
 		return upper->dev;
 	return NULL;
 }
 EXPORT_SYMBOL(netdev_master_upper_dev_get);
 
-static struct net_device *__netdev_master_upper_dev_get(struct net_device *dev)
+static struct net_device* __netdev_master_upper_dev_get(struct net_device* dev)
 {
-	struct netdev_adjacent *upper;
+	struct netdev_adjacent* upper;
 
 	ASSERT_RTNL();
 
 	if (list_empty(&dev->adj_list.upper))
 		return NULL;
 
-	upper = list_first_entry(&dev->adj_list.upper,
-				 struct netdev_adjacent, list);
+	upper = list_first_entry(&dev->adj_list.upper, struct netdev_adjacent, list);
 	if (likely(upper->master) && !upper->ignore)
 		return upper->dev;
 	return NULL;
@@ -7314,16 +7317,16 @@ static struct net_device *__netdev_master_upper_dev_get(struct net_device *dev)
  * Find out if a device is linked to a lower device and return true in case
  * it is. The caller must hold the RTNL lock.
  */
-static bool netdev_has_any_lower_dev(struct net_device *dev)
+static bool netdev_has_any_lower_dev(struct net_device* dev)
 {
 	ASSERT_RTNL();
 
 	return !list_empty(&dev->adj_list.lower);
 }
 
-void *netdev_adjacent_get_private(struct list_head *adj_list)
+void* netdev_adjacent_get_private(struct list_head* adj_list)
 {
-	struct netdev_adjacent *adj;
+	struct netdev_adjacent* adj;
 
 	adj = list_entry(adj_list, struct netdev_adjacent, list);
 
@@ -7339,10 +7342,9 @@ EXPORT_SYMBOL(netdev_adjacent_get_private);
  * Gets the next device from the dev's upper list, starting from iter
  * position. The caller must hold RCU read lock.
  */
-struct net_device *netdev_upper_get_next_dev_rcu(struct net_device *dev,
-						 struct list_head **iter)
+struct net_device* netdev_upper_get_next_dev_rcu(struct net_device* dev, struct list_head** iter)
 {
-	struct netdev_adjacent *upper;
+	struct netdev_adjacent* upper;
 
 	WARN_ON_ONCE(!rcu_read_lock_held() && !lockdep_rtnl_is_held());
 
@@ -7357,11 +7359,9 @@ struct net_device *netdev_upper_get_next_dev_rcu(struct net_device *dev,
 }
 EXPORT_SYMBOL(netdev_upper_get_next_dev_rcu);
 
-static struct net_device *__netdev_next_upper_dev(struct net_device *dev,
-						  struct list_head **iter,
-						  bool *ignore)
+static struct net_device* __netdev_next_upper_dev(struct net_device* dev, struct list_head** iter, bool* ignore)
 {
-	struct netdev_adjacent *upper;
+	struct netdev_adjacent* upper;
 
 	upper = list_entry((*iter)->next, struct netdev_adjacent, list);
 
@@ -7374,10 +7374,9 @@ static struct net_device *__netdev_next_upper_dev(struct net_device *dev,
 	return upper->dev;
 }
 
-static struct net_device *netdev_next_upper_dev_rcu(struct net_device *dev,
-						    struct list_head **iter)
+static struct net_device* netdev_next_upper_dev_rcu(struct net_device* dev, struct list_head** iter)
 {
-	struct netdev_adjacent *upper;
+	struct netdev_adjacent* upper;
 
 	WARN_ON_ONCE(!rcu_read_lock_held() && !lockdep_rtnl_is_held());
 
@@ -7391,10 +7390,7 @@ static struct net_device *netdev_next_upper_dev_rcu(struct net_device *dev,
 	return upper->dev;
 }
 
-static int __netdev_walk_all_upper_dev(struct net_device *dev,
-				       int (*fn)(struct net_device *dev,
-					 struct netdev_nested_priv *priv),
-				       struct netdev_nested_priv *priv)
+static int __netdev_walk_all_upper_dev(struct net_device* dev, int (*fn)(struct net_device* dev, struct netdev_nested_priv* priv), struct netdev_nested_priv* priv)
 {
 	struct net_device *udev, *next, *now, *dev_stack[MAX_NEST_DEV + 1];
 	struct list_head *niter, *iter, *iter_stack[MAX_NEST_DEV + 1];
@@ -7404,15 +7400,18 @@ static int __netdev_walk_all_upper_dev(struct net_device *dev,
 	now = dev;
 	iter = &dev->adj_list.upper;
 
-	while (1) {
-		if (now != dev) {
+	while (1)
+	{
+		if (now != dev)
+		{
 			ret = fn(now, priv);
 			if (ret)
 				return ret;
 		}
 
 		next = NULL;
-		while (1) {
+		while (1)
+		{
 			udev = __netdev_next_upper_dev(now, &iter, &ignore);
 			if (!udev)
 				break;
@@ -7426,7 +7425,8 @@ static int __netdev_walk_all_upper_dev(struct net_device *dev,
 			break;
 		}
 
-		if (!next) {
+		if (!next)
+		{
 			if (!cur)
 				return 0;
 			next = dev_stack[--cur];
@@ -7440,10 +7440,7 @@ static int __netdev_walk_all_upper_dev(struct net_device *dev,
 	return 0;
 }
 
-int netdev_walk_all_upper_dev_rcu(struct net_device *dev,
-				  int (*fn)(struct net_device *dev,
-					    struct netdev_nested_priv *priv),
-				  struct netdev_nested_priv *priv)
+int netdev_walk_all_upper_dev_rcu(struct net_device* dev, int (*fn)(struct net_device* dev, struct netdev_nested_priv* priv), struct netdev_nested_priv* priv)
 {
 	struct net_device *udev, *next, *now, *dev_stack[MAX_NEST_DEV + 1];
 	struct list_head *niter, *iter, *iter_stack[MAX_NEST_DEV + 1];
@@ -7452,15 +7449,18 @@ int netdev_walk_all_upper_dev_rcu(struct net_device *dev,
 	now = dev;
 	iter = &dev->adj_list.upper;
 
-	while (1) {
-		if (now != dev) {
+	while (1)
+	{
+		if (now != dev)
+		{
 			ret = fn(now, priv);
 			if (ret)
 				return ret;
 		}
 
 		next = NULL;
-		while (1) {
+		while (1)
+		{
 			udev = netdev_next_upper_dev_rcu(now, &iter);
 			if (!udev)
 				break;
@@ -7472,7 +7472,8 @@ int netdev_walk_all_upper_dev_rcu(struct net_device *dev,
 			break;
 		}
 
-		if (!next) {
+		if (!next)
+		{
 			if (!cur)
 				return 0;
 			next = dev_stack[--cur];
@@ -7487,18 +7488,16 @@ int netdev_walk_all_upper_dev_rcu(struct net_device *dev,
 }
 EXPORT_SYMBOL_GPL(netdev_walk_all_upper_dev_rcu);
 
-static bool __netdev_has_upper_dev(struct net_device *dev,
-				   struct net_device *upper_dev)
+static bool __netdev_has_upper_dev(struct net_device* dev, struct net_device* upper_dev)
 {
 	struct netdev_nested_priv priv = {
 		.flags = 0,
-		.data = (void *)upper_dev,
+		.data = (void*)upper_dev,
 	};
 
 	ASSERT_RTNL();
 
-	return __netdev_walk_all_upper_dev(dev, ____netdev_has_upper_dev,
-					   &priv);
+	return __netdev_walk_all_upper_dev(dev, ____netdev_has_upper_dev, &priv);
 }
 
 /**
@@ -7512,10 +7511,9 @@ static bool __netdev_has_upper_dev(struct net_device *dev,
  * RTNL lock or its own locking that guarantees that the neighbour lower
  * list will remain unchanged.
  */
-void *netdev_lower_get_next_private(struct net_device *dev,
-				    struct list_head **iter)
+void* netdev_lower_get_next_private(struct net_device* dev, struct list_head** iter)
 {
-	struct netdev_adjacent *lower;
+	struct netdev_adjacent* lower;
 
 	lower = list_entry(*iter, struct netdev_adjacent, list);
 
@@ -7538,10 +7536,9 @@ EXPORT_SYMBOL(netdev_lower_get_next_private);
  * Gets the next netdev_adjacent->private from the dev's lower neighbour
  * list, starting from iter position. The caller must hold RCU read lock.
  */
-void *netdev_lower_get_next_private_rcu(struct net_device *dev,
-					struct list_head **iter)
+void* netdev_lower_get_next_private_rcu(struct net_device* dev, struct list_head** iter)
 {
-	struct netdev_adjacent *lower;
+	struct netdev_adjacent* lower;
 
 	WARN_ON_ONCE(!rcu_read_lock_held() && !rcu_read_lock_bh_held());
 
@@ -7567,9 +7564,9 @@ EXPORT_SYMBOL(netdev_lower_get_next_private_rcu);
  * its own locking that guarantees that the neighbour lower
  * list will remain unchanged.
  */
-void *netdev_lower_get_next(struct net_device *dev, struct list_head **iter)
+void* netdev_lower_get_next(struct net_device* dev, struct list_head** iter)
 {
-	struct netdev_adjacent *lower;
+	struct netdev_adjacent* lower;
 
 	lower = list_entry(*iter, struct netdev_adjacent, list);
 
@@ -7582,10 +7579,9 @@ void *netdev_lower_get_next(struct net_device *dev, struct list_head **iter)
 }
 EXPORT_SYMBOL(netdev_lower_get_next);
 
-static struct net_device *netdev_next_lower_dev(struct net_device *dev,
-						struct list_head **iter)
+static struct net_device* netdev_next_lower_dev(struct net_device* dev, struct list_head** iter)
 {
-	struct netdev_adjacent *lower;
+	struct netdev_adjacent* lower;
 
 	lower = list_entry((*iter)->next, struct netdev_adjacent, list);
 
@@ -7597,11 +7593,9 @@ static struct net_device *netdev_next_lower_dev(struct net_device *dev,
 	return lower->dev;
 }
 
-static struct net_device *__netdev_next_lower_dev(struct net_device *dev,
-						  struct list_head **iter,
-						  bool *ignore)
+static struct net_device* __netdev_next_lower_dev(struct net_device* dev, struct list_head** iter, bool* ignore)
 {
-	struct netdev_adjacent *lower;
+	struct netdev_adjacent* lower;
 
 	lower = list_entry((*iter)->next, struct netdev_adjacent, list);
 
@@ -7614,10 +7608,7 @@ static struct net_device *__netdev_next_lower_dev(struct net_device *dev,
 	return lower->dev;
 }
 
-int netdev_walk_all_lower_dev(struct net_device *dev,
-			      int (*fn)(struct net_device *dev,
-					struct netdev_nested_priv *priv),
-			      struct netdev_nested_priv *priv)
+int netdev_walk_all_lower_dev(struct net_device* dev, int (*fn)(struct net_device* dev, struct netdev_nested_priv* priv), struct netdev_nested_priv* priv)
 {
 	struct net_device *ldev, *next, *now, *dev_stack[MAX_NEST_DEV + 1];
 	struct list_head *niter, *iter, *iter_stack[MAX_NEST_DEV + 1];
@@ -7626,15 +7617,18 @@ int netdev_walk_all_lower_dev(struct net_device *dev,
 	now = dev;
 	iter = &dev->adj_list.lower;
 
-	while (1) {
-		if (now != dev) {
+	while (1)
+	{
+		if (now != dev)
+		{
 			ret = fn(now, priv);
 			if (ret)
 				return ret;
 		}
 
 		next = NULL;
-		while (1) {
+		while (1)
+		{
 			ldev = netdev_next_lower_dev(now, &iter);
 			if (!ldev)
 				break;
@@ -7646,7 +7640,8 @@ int netdev_walk_all_lower_dev(struct net_device *dev,
 			break;
 		}
 
-		if (!next) {
+		if (!next)
+		{
 			if (!cur)
 				return 0;
 			next = dev_stack[--cur];
@@ -7661,10 +7656,7 @@ int netdev_walk_all_lower_dev(struct net_device *dev,
 }
 EXPORT_SYMBOL_GPL(netdev_walk_all_lower_dev);
 
-static int __netdev_walk_all_lower_dev(struct net_device *dev,
-				       int (*fn)(struct net_device *dev,
-					 struct netdev_nested_priv *priv),
-				       struct netdev_nested_priv *priv)
+static int __netdev_walk_all_lower_dev(struct net_device* dev, int (*fn)(struct net_device* dev, struct netdev_nested_priv* priv), struct netdev_nested_priv* priv)
 {
 	struct net_device *ldev, *next, *now, *dev_stack[MAX_NEST_DEV + 1];
 	struct list_head *niter, *iter, *iter_stack[MAX_NEST_DEV + 1];
@@ -7674,15 +7666,18 @@ static int __netdev_walk_all_lower_dev(struct net_device *dev,
 	now = dev;
 	iter = &dev->adj_list.lower;
 
-	while (1) {
-		if (now != dev) {
+	while (1)
+	{
+		if (now != dev)
+		{
 			ret = fn(now, priv);
 			if (ret)
 				return ret;
 		}
 
 		next = NULL;
-		while (1) {
+		while (1)
+		{
 			ldev = __netdev_next_lower_dev(now, &iter, &ignore);
 			if (!ldev)
 				break;
@@ -7696,7 +7691,8 @@ static int __netdev_walk_all_lower_dev(struct net_device *dev,
 			break;
 		}
 
-		if (!next) {
+		if (!next)
+		{
 			if (!cur)
 				return 0;
 			next = dev_stack[--cur];
@@ -7710,10 +7706,9 @@ static int __netdev_walk_all_lower_dev(struct net_device *dev,
 	return 0;
 }
 
-struct net_device *netdev_next_lower_dev_rcu(struct net_device *dev,
-					     struct list_head **iter)
+struct net_device* netdev_next_lower_dev_rcu(struct net_device* dev, struct list_head** iter)
 {
-	struct netdev_adjacent *lower;
+	struct netdev_adjacent* lower;
 
 	lower = list_entry_rcu((*iter)->next, struct netdev_adjacent, list);
 	if (&lower->list == &dev->adj_list.lower)
@@ -7725,17 +7720,15 @@ struct net_device *netdev_next_lower_dev_rcu(struct net_device *dev,
 }
 EXPORT_SYMBOL(netdev_next_lower_dev_rcu);
 
-static u8 __netdev_upper_depth(struct net_device *dev)
+static u8 __netdev_upper_depth(struct net_device* dev)
 {
-	struct net_device *udev;
-	struct list_head *iter;
+	struct net_device* udev;
+	struct list_head* iter;
 	u8 max_depth = 0;
 	bool ignore;
 
-	for (iter = &dev->adj_list.upper,
-	     udev = __netdev_next_upper_dev(dev, &iter, &ignore);
-	     udev;
-	     udev = __netdev_next_upper_dev(dev, &iter, &ignore)) {
+	for (iter = &dev->adj_list.upper, udev = __netdev_next_upper_dev(dev, &iter, &ignore); udev; udev = __netdev_next_upper_dev(dev, &iter, &ignore))
+	{
 		if (ignore)
 			continue;
 		if (max_depth < udev->upper_level)
@@ -7745,17 +7738,15 @@ static u8 __netdev_upper_depth(struct net_device *dev)
 	return max_depth;
 }
 
-static u8 __netdev_lower_depth(struct net_device *dev)
+static u8 __netdev_lower_depth(struct net_device* dev)
 {
-	struct net_device *ldev;
-	struct list_head *iter;
+	struct net_device* ldev;
+	struct list_head* iter;
 	u8 max_depth = 0;
 	bool ignore;
 
-	for (iter = &dev->adj_list.lower,
-	     ldev = __netdev_next_lower_dev(dev, &iter, &ignore);
-	     ldev;
-	     ldev = __netdev_next_lower_dev(dev, &iter, &ignore)) {
+	for (iter = &dev->adj_list.lower, ldev = __netdev_next_lower_dev(dev, &iter, &ignore); ldev; ldev = __netdev_next_lower_dev(dev, &iter, &ignore))
+	{
 		if (ignore)
 			continue;
 		if (max_depth < ldev->lower_level)
@@ -7765,15 +7756,13 @@ static u8 __netdev_lower_depth(struct net_device *dev)
 	return max_depth;
 }
 
-static int __netdev_update_upper_level(struct net_device *dev,
-				       struct netdev_nested_priv *__unused)
+static int __netdev_update_upper_level(struct net_device* dev, struct netdev_nested_priv* __unused)
 {
 	dev->upper_level = __netdev_upper_depth(dev) + 1;
 	return 0;
 }
 
-static int __netdev_update_lower_level(struct net_device *dev,
-				       struct netdev_nested_priv *priv)
+static int __netdev_update_lower_level(struct net_device* dev, struct netdev_nested_priv* priv)
 {
 	dev->lower_level = __netdev_lower_depth(dev) + 1;
 
@@ -7789,10 +7778,7 @@ static int __netdev_update_lower_level(struct net_device *dev,
 	return 0;
 }
 
-int netdev_walk_all_lower_dev_rcu(struct net_device *dev,
-				  int (*fn)(struct net_device *dev,
-					    struct netdev_nested_priv *priv),
-				  struct netdev_nested_priv *priv)
+int netdev_walk_all_lower_dev_rcu(struct net_device* dev, int (*fn)(struct net_device* dev, struct netdev_nested_priv* priv), struct netdev_nested_priv* priv)
 {
 	struct net_device *ldev, *next, *now, *dev_stack[MAX_NEST_DEV + 1];
 	struct list_head *niter, *iter, *iter_stack[MAX_NEST_DEV + 1];
@@ -7801,15 +7787,18 @@ int netdev_walk_all_lower_dev_rcu(struct net_device *dev,
 	now = dev;
 	iter = &dev->adj_list.lower;
 
-	while (1) {
-		if (now != dev) {
+	while (1)
+	{
+		if (now != dev)
+		{
 			ret = fn(now, priv);
 			if (ret)
 				return ret;
 		}
 
 		next = NULL;
-		while (1) {
+		while (1)
+		{
 			ldev = netdev_next_lower_dev_rcu(now, &iter);
 			if (!ldev)
 				break;
@@ -7821,7 +7810,8 @@ int netdev_walk_all_lower_dev_rcu(struct net_device *dev,
 			break;
 		}
 
-		if (!next) {
+		if (!next)
+		{
 			if (!cur)
 				return 0;
 			next = dev_stack[--cur];
@@ -7845,12 +7835,11 @@ EXPORT_SYMBOL_GPL(netdev_walk_all_lower_dev_rcu);
  * Gets the first netdev_adjacent->private from the dev's lower neighbour
  * list. The caller must hold RCU read lock.
  */
-void *netdev_lower_get_first_private_rcu(struct net_device *dev)
+void* netdev_lower_get_first_private_rcu(struct net_device* dev)
 {
-	struct netdev_adjacent *lower;
+	struct netdev_adjacent* lower;
 
-	lower = list_first_or_null_rcu(&dev->adj_list.lower,
-			struct netdev_adjacent, list);
+	lower = list_first_or_null_rcu(&dev->adj_list.lower, struct netdev_adjacent, list);
 	if (lower)
 		return lower->private;
 	return NULL;
@@ -7864,63 +7853,48 @@ EXPORT_SYMBOL(netdev_lower_get_first_private_rcu);
  * Find a master upper device and return pointer to it or NULL in case
  * it's not there. The caller must hold the RCU read lock.
  */
-struct net_device *netdev_master_upper_dev_get_rcu(struct net_device *dev)
+struct net_device* netdev_master_upper_dev_get_rcu(struct net_device* dev)
 {
-	struct netdev_adjacent *upper;
+	struct netdev_adjacent* upper;
 
-	upper = list_first_or_null_rcu(&dev->adj_list.upper,
-				       struct netdev_adjacent, list);
+	upper = list_first_or_null_rcu(&dev->adj_list.upper, struct netdev_adjacent, list);
 	if (upper && likely(upper->master))
 		return upper->dev;
 	return NULL;
 }
 EXPORT_SYMBOL(netdev_master_upper_dev_get_rcu);
 
-static int netdev_adjacent_sysfs_add(struct net_device *dev,
-			      struct net_device *adj_dev,
-			      struct list_head *dev_list)
+static int netdev_adjacent_sysfs_add(struct net_device* dev, struct net_device* adj_dev, struct list_head* dev_list)
 {
-	char linkname[IFNAMSIZ+7];
+	char linkname[IFNAMSIZ + 7];
 
-	sprintf(linkname, dev_list == &dev->adj_list.upper ?
-		"upper_%s" : "lower_%s", adj_dev->name);
-	return sysfs_create_link(&(dev->dev.kobj), &(adj_dev->dev.kobj),
-				 linkname);
+	sprintf(linkname, dev_list == &dev->adj_list.upper ? "upper_%s" : "lower_%s", adj_dev->name);
+	return sysfs_create_link(&(dev->dev.kobj), &(adj_dev->dev.kobj), linkname);
 }
-static void netdev_adjacent_sysfs_del(struct net_device *dev,
-			       char *name,
-			       struct list_head *dev_list)
+static void netdev_adjacent_sysfs_del(struct net_device* dev, char* name, struct list_head* dev_list)
 {
-	char linkname[IFNAMSIZ+7];
+	char linkname[IFNAMSIZ + 7];
 
-	sprintf(linkname, dev_list == &dev->adj_list.upper ?
-		"upper_%s" : "lower_%s", name);
+	sprintf(linkname, dev_list == &dev->adj_list.upper ? "upper_%s" : "lower_%s", name);
 	sysfs_remove_link(&(dev->dev.kobj), linkname);
 }
 
-static inline bool netdev_adjacent_is_neigh_list(struct net_device *dev,
-						 struct net_device *adj_dev,
-						 struct list_head *dev_list)
+static inline bool netdev_adjacent_is_neigh_list(struct net_device* dev, struct net_device* adj_dev, struct list_head* dev_list)
 {
-	return (dev_list == &dev->adj_list.upper ||
-		dev_list == &dev->adj_list.lower) &&
-		net_eq(dev_net(dev), dev_net(adj_dev));
+	return (dev_list == &dev->adj_list.upper || dev_list == &dev->adj_list.lower) && net_eq(dev_net(dev), dev_net(adj_dev));
 }
 
-static int __netdev_adjacent_dev_insert(struct net_device *dev,
-					struct net_device *adj_dev,
-					struct list_head *dev_list,
-					void *private, bool master)
+static int __netdev_adjacent_dev_insert(struct net_device* dev, struct net_device* adj_dev, struct list_head* dev_list, void* private, bool master)
 {
-	struct netdev_adjacent *adj;
+	struct netdev_adjacent* adj;
 	int ret;
 
 	adj = __netdev_find_adj(adj_dev, dev_list);
 
-	if (adj) {
+	if (adj)
+	{
 		adj->ref_nr += 1;
-		pr_debug("Insert adjacency: dev %s adj_dev %s adj->ref_nr %d\n",
-			 dev->name, adj_dev->name, adj->ref_nr);
+		pr_debug("Insert adjacency: dev %s adj_dev %s adj->ref_nr %d\n", dev->name, adj_dev->name, adj->ref_nr);
 
 		return 0;
 	}
@@ -7936,24 +7910,26 @@ static int __netdev_adjacent_dev_insert(struct net_device *dev,
 	adj->ignore = false;
 	dev_hold(adj_dev);
 
-	pr_debug("Insert adjacency: dev %s adj_dev %s adj->ref_nr %d; dev_hold on %s\n",
-		 dev->name, adj_dev->name, adj->ref_nr, adj_dev->name);
+	pr_debug("Insert adjacency: dev %s adj_dev %s adj->ref_nr %d; dev_hold on %s\n", dev->name, adj_dev->name, adj->ref_nr, adj_dev->name);
 
-	if (netdev_adjacent_is_neigh_list(dev, adj_dev, dev_list)) {
+	if (netdev_adjacent_is_neigh_list(dev, adj_dev, dev_list))
+	{
 		ret = netdev_adjacent_sysfs_add(dev, adj_dev, dev_list);
 		if (ret)
 			goto free_adj;
 	}
 
 	/* Ensure that master link is always the first item in list. */
-	if (master) {
-		ret = sysfs_create_link(&(dev->dev.kobj),
-					&(adj_dev->dev.kobj), "master");
+	if (master)
+	{
+		ret = sysfs_create_link(&(dev->dev.kobj), &(adj_dev->dev.kobj), "master");
 		if (ret)
 			goto remove_symlinks;
 
 		list_add_rcu(&adj->list, dev_list);
-	} else {
+	}
+	else
+	{
 		list_add_tail_rcu(&adj->list, dev_list);
 	}
 
@@ -7969,29 +7945,24 @@ free_adj:
 	return ret;
 }
 
-static void __netdev_adjacent_dev_remove(struct net_device *dev,
-					 struct net_device *adj_dev,
-					 u16 ref_nr,
-					 struct list_head *dev_list)
+static void __netdev_adjacent_dev_remove(struct net_device* dev, struct net_device* adj_dev, u16 ref_nr, struct list_head* dev_list)
 {
-	struct netdev_adjacent *adj;
+	struct netdev_adjacent* adj;
 
-	pr_debug("Remove adjacency: dev %s adj_dev %s ref_nr %d\n",
-		 dev->name, adj_dev->name, ref_nr);
+	pr_debug("Remove adjacency: dev %s adj_dev %s ref_nr %d\n", dev->name, adj_dev->name, ref_nr);
 
 	adj = __netdev_find_adj(adj_dev, dev_list);
 
-	if (!adj) {
-		pr_err("Adjacency does not exist for device %s from %s\n",
-		       dev->name, adj_dev->name);
+	if (!adj)
+	{
+		pr_err("Adjacency does not exist for device %s from %s\n", dev->name, adj_dev->name);
 		WARN_ON(1);
 		return;
 	}
 
-	if (adj->ref_nr > ref_nr) {
-		pr_debug("adjacency: %s to %s ref_nr - %d = %d\n",
-			 dev->name, adj_dev->name, ref_nr,
-			 adj->ref_nr - ref_nr);
+	if (adj->ref_nr > ref_nr)
+	{
+		pr_debug("adjacency: %s to %s ref_nr - %d = %d\n", dev->name, adj_dev->name, ref_nr, adj->ref_nr - ref_nr);
 		adj->ref_nr -= ref_nr;
 		return;
 	}
@@ -8003,28 +7974,22 @@ static void __netdev_adjacent_dev_remove(struct net_device *dev,
 		netdev_adjacent_sysfs_del(dev, adj_dev->name, dev_list);
 
 	list_del_rcu(&adj->list);
-	pr_debug("adjacency: dev_put for %s, because link removed from %s to %s\n",
-		 adj_dev->name, dev->name, adj_dev->name);
+	pr_debug("adjacency: dev_put for %s, because link removed from %s to %s\n", adj_dev->name, dev->name, adj_dev->name);
 	dev_put(adj_dev);
 	kfree_rcu(adj, rcu);
 }
 
-static int __netdev_adjacent_dev_link_lists(struct net_device *dev,
-					    struct net_device *upper_dev,
-					    struct list_head *up_list,
-					    struct list_head *down_list,
-					    void *private, bool master)
+static int __netdev_adjacent_dev_link_lists(struct net_device* dev, struct net_device* upper_dev, struct list_head* up_list, struct list_head* down_list, void* private, bool master)
 {
 	int ret;
 
-	ret = __netdev_adjacent_dev_insert(dev, upper_dev, up_list,
-					   private, master);
+	ret = __netdev_adjacent_dev_insert(dev, upper_dev, up_list, private, master);
 	if (ret)
 		return ret;
 
-	ret = __netdev_adjacent_dev_insert(upper_dev, dev, down_list,
-					   private, false);
-	if (ret) {
+	ret = __netdev_adjacent_dev_insert(upper_dev, dev, down_list, private, false);
+	if (ret)
+	{
 		__netdev_adjacent_dev_remove(dev, upper_dev, 1, up_list);
 		return ret;
 	}
@@ -8032,39 +7997,23 @@ static int __netdev_adjacent_dev_link_lists(struct net_device *dev,
 	return 0;
 }
 
-static void __netdev_adjacent_dev_unlink_lists(struct net_device *dev,
-					       struct net_device *upper_dev,
-					       u16 ref_nr,
-					       struct list_head *up_list,
-					       struct list_head *down_list)
+static void __netdev_adjacent_dev_unlink_lists(struct net_device* dev, struct net_device* upper_dev, u16 ref_nr, struct list_head* up_list, struct list_head* down_list)
 {
 	__netdev_adjacent_dev_remove(dev, upper_dev, ref_nr, up_list);
 	__netdev_adjacent_dev_remove(upper_dev, dev, ref_nr, down_list);
 }
 
-static int __netdev_adjacent_dev_link_neighbour(struct net_device *dev,
-						struct net_device *upper_dev,
-						void *private, bool master)
+static int __netdev_adjacent_dev_link_neighbour(struct net_device* dev, struct net_device* upper_dev, void* private, bool master)
 {
-	return __netdev_adjacent_dev_link_lists(dev, upper_dev,
-						&dev->adj_list.upper,
-						&upper_dev->adj_list.lower,
-						private, master);
+	return __netdev_adjacent_dev_link_lists(dev, upper_dev, &dev->adj_list.upper, &upper_dev->adj_list.lower, private, master);
 }
 
-static void __netdev_adjacent_dev_unlink_neighbour(struct net_device *dev,
-						   struct net_device *upper_dev)
+static void __netdev_adjacent_dev_unlink_neighbour(struct net_device* dev, struct net_device* upper_dev)
 {
-	__netdev_adjacent_dev_unlink_lists(dev, upper_dev, 1,
-					   &dev->adj_list.upper,
-					   &upper_dev->adj_list.lower);
+	__netdev_adjacent_dev_unlink_lists(dev, upper_dev, 1, &dev->adj_list.upper, &upper_dev->adj_list.lower);
 }
 
-static int __netdev_upper_dev_link(struct net_device *dev,
-				   struct net_device *upper_dev, bool master,
-				   void *upper_priv, void *upper_info,
-				   struct netdev_nested_priv *priv,
-				   struct netlink_ext_ack *extack)
+static int __netdev_upper_dev_link(struct net_device* dev, struct net_device* upper_dev, bool master, void* upper_priv, void* upper_info, struct netdev_nested_priv* priv, struct netlink_ext_ack* extack)
 {
 	struct netdev_notifier_changeupper_info changeupper_info = {
 		.info = {
@@ -8076,7 +8025,7 @@ static int __netdev_upper_dev_link(struct net_device *dev,
 		.linking = true,
 		.upper_info = upper_info,
 	};
-	struct net_device *master_dev;
+	struct net_device* master_dev;
 	int ret = 0;
 
 	ASSERT_RTNL();
@@ -8091,28 +8040,28 @@ static int __netdev_upper_dev_link(struct net_device *dev,
 	if ((dev->lower_level + upper_dev->upper_level) > MAX_NEST_DEV)
 		return -EMLINK;
 
-	if (!master) {
+	if (!master)
+	{
 		if (__netdev_has_upper_dev(dev, upper_dev))
 			return -EEXIST;
-	} else {
+	}
+	else
+	{
 		master_dev = __netdev_master_upper_dev_get(dev);
 		if (master_dev)
 			return master_dev == upper_dev ? -EEXIST : -EBUSY;
 	}
 
-	ret = call_netdevice_notifiers_info(NETDEV_PRECHANGEUPPER,
-					    &changeupper_info.info);
+	ret = call_netdevice_notifiers_info(NETDEV_PRECHANGEUPPER, &changeupper_info.info);
 	ret = notifier_to_errno(ret);
 	if (ret)
 		return ret;
 
-	ret = __netdev_adjacent_dev_link_neighbour(dev, upper_dev, upper_priv,
-						   master);
+	ret = __netdev_adjacent_dev_link_neighbour(dev, upper_dev, upper_priv, master);
 	if (ret)
 		return ret;
 
-	ret = call_netdevice_notifiers_info(NETDEV_CHANGEUPPER,
-					    &changeupper_info.info);
+	ret = call_netdevice_notifiers_info(NETDEV_CHANGEUPPER, &changeupper_info.info);
 	ret = notifier_to_errno(ret);
 	if (ret)
 		goto rollback;
@@ -8121,8 +8070,7 @@ static int __netdev_upper_dev_link(struct net_device *dev,
 	__netdev_walk_all_lower_dev(dev, __netdev_update_upper_level, NULL);
 
 	__netdev_update_lower_level(upper_dev, priv);
-	__netdev_walk_all_upper_dev(upper_dev, __netdev_update_lower_level,
-				    priv);
+	__netdev_walk_all_upper_dev(upper_dev, __netdev_update_lower_level, priv);
 
 	return 0;
 
@@ -8143,17 +8091,14 @@ rollback:
  * On success the reference counts are adjusted and the function
  * returns zero.
  */
-int netdev_upper_dev_link(struct net_device *dev,
-			  struct net_device *upper_dev,
-			  struct netlink_ext_ack *extack)
+int netdev_upper_dev_link(struct net_device* dev, struct net_device* upper_dev, struct netlink_ext_ack* extack)
 {
 	struct netdev_nested_priv priv = {
 		.flags = NESTED_SYNC_IMM | NESTED_SYNC_TODO,
 		.data = NULL,
 	};
 
-	return __netdev_upper_dev_link(dev, upper_dev, false,
-				       NULL, NULL, &priv, extack);
+	return __netdev_upper_dev_link(dev, upper_dev, false, NULL, NULL, &priv, extack);
 }
 EXPORT_SYMBOL(netdev_upper_dev_link);
 
@@ -8171,24 +8116,18 @@ EXPORT_SYMBOL(netdev_upper_dev_link);
  * On a failure a negative errno code is returned. On success the reference
  * counts are adjusted and the function returns zero.
  */
-int netdev_master_upper_dev_link(struct net_device *dev,
-				 struct net_device *upper_dev,
-				 void *upper_priv, void *upper_info,
-				 struct netlink_ext_ack *extack)
+int netdev_master_upper_dev_link(struct net_device* dev, struct net_device* upper_dev, void* upper_priv, void* upper_info, struct netlink_ext_ack* extack)
 {
 	struct netdev_nested_priv priv = {
 		.flags = NESTED_SYNC_IMM | NESTED_SYNC_TODO,
 		.data = NULL,
 	};
 
-	return __netdev_upper_dev_link(dev, upper_dev, true,
-				       upper_priv, upper_info, &priv, extack);
+	return __netdev_upper_dev_link(dev, upper_dev, true, upper_priv, upper_info, &priv, extack);
 }
 EXPORT_SYMBOL(netdev_master_upper_dev_link);
 
-static void __netdev_upper_dev_unlink(struct net_device *dev,
-				      struct net_device *upper_dev,
-				      struct netdev_nested_priv *priv)
+static void __netdev_upper_dev_unlink(struct net_device* dev, struct net_device* upper_dev, struct netdev_nested_priv* priv)
 {
 	struct netdev_notifier_changeupper_info changeupper_info = {
 		.info = {
@@ -8202,20 +8141,17 @@ static void __netdev_upper_dev_unlink(struct net_device *dev,
 
 	changeupper_info.master = netdev_master_upper_dev_get(dev) == upper_dev;
 
-	call_netdevice_notifiers_info(NETDEV_PRECHANGEUPPER,
-				      &changeupper_info.info);
+	call_netdevice_notifiers_info(NETDEV_PRECHANGEUPPER, &changeupper_info.info);
 
 	__netdev_adjacent_dev_unlink_neighbour(dev, upper_dev);
 
-	call_netdevice_notifiers_info(NETDEV_CHANGEUPPER,
-				      &changeupper_info.info);
+	call_netdevice_notifiers_info(NETDEV_CHANGEUPPER, &changeupper_info.info);
 
 	__netdev_update_upper_level(dev, NULL);
 	__netdev_walk_all_lower_dev(dev, __netdev_update_upper_level, NULL);
 
 	__netdev_update_lower_level(upper_dev, priv);
-	__netdev_walk_all_upper_dev(upper_dev, __netdev_update_lower_level,
-				    priv);
+	__netdev_walk_all_upper_dev(upper_dev, __netdev_update_lower_level, priv);
 }
 
 /**
@@ -8226,8 +8162,7 @@ static void __netdev_upper_dev_unlink(struct net_device *dev,
  * Removes a link to device which is upper to this one. The caller must hold
  * the RTNL lock.
  */
-void netdev_upper_dev_unlink(struct net_device *dev,
-			     struct net_device *upper_dev)
+void netdev_upper_dev_unlink(struct net_device* dev, struct net_device* upper_dev)
 {
 	struct netdev_nested_priv priv = {
 		.flags = NESTED_SYNC_TODO,
@@ -8238,11 +8173,9 @@ void netdev_upper_dev_unlink(struct net_device *dev,
 }
 EXPORT_SYMBOL(netdev_upper_dev_unlink);
 
-static void __netdev_adjacent_dev_set(struct net_device *upper_dev,
-				      struct net_device *lower_dev,
-				      bool val)
+static void __netdev_adjacent_dev_set(struct net_device* upper_dev, struct net_device* lower_dev, bool val)
 {
-	struct netdev_adjacent *adj;
+	struct netdev_adjacent* adj;
 
 	adj = __netdev_find_adj(lower_dev, &upper_dev->adj_list.lower);
 	if (adj)
@@ -8253,22 +8186,17 @@ static void __netdev_adjacent_dev_set(struct net_device *upper_dev,
 		adj->ignore = val;
 }
 
-static void netdev_adjacent_dev_disable(struct net_device *upper_dev,
-					struct net_device *lower_dev)
+static void netdev_adjacent_dev_disable(struct net_device* upper_dev, struct net_device* lower_dev)
 {
 	__netdev_adjacent_dev_set(upper_dev, lower_dev, true);
 }
 
-static void netdev_adjacent_dev_enable(struct net_device *upper_dev,
-				       struct net_device *lower_dev)
+static void netdev_adjacent_dev_enable(struct net_device* upper_dev, struct net_device* lower_dev)
 {
 	__netdev_adjacent_dev_set(upper_dev, lower_dev, false);
 }
 
-int netdev_adjacent_change_prepare(struct net_device *old_dev,
-				   struct net_device *new_dev,
-				   struct net_device *dev,
-				   struct netlink_ext_ack *extack)
+int netdev_adjacent_change_prepare(struct net_device* old_dev, struct net_device* new_dev, struct net_device* dev, struct netlink_ext_ack* extack)
 {
 	struct netdev_nested_priv priv = {
 		.flags = 0,
@@ -8281,9 +8209,9 @@ int netdev_adjacent_change_prepare(struct net_device *old_dev,
 
 	if (old_dev && new_dev != old_dev)
 		netdev_adjacent_dev_disable(dev, old_dev);
-	err = __netdev_upper_dev_link(new_dev, dev, false, NULL, NULL, &priv,
-				      extack);
-	if (err) {
+	err = __netdev_upper_dev_link(new_dev, dev, false, NULL, NULL, &priv, extack);
+	if (err)
+	{
 		if (old_dev && new_dev != old_dev)
 			netdev_adjacent_dev_enable(dev, old_dev);
 		return err;
@@ -8293,9 +8221,7 @@ int netdev_adjacent_change_prepare(struct net_device *old_dev,
 }
 EXPORT_SYMBOL(netdev_adjacent_change_prepare);
 
-void netdev_adjacent_change_commit(struct net_device *old_dev,
-				   struct net_device *new_dev,
-				   struct net_device *dev)
+void netdev_adjacent_change_commit(struct net_device* old_dev, struct net_device* new_dev, struct net_device* dev)
 {
 	struct netdev_nested_priv priv = {
 		.flags = NESTED_SYNC_IMM | NESTED_SYNC_TODO,
@@ -8313,9 +8239,7 @@ void netdev_adjacent_change_commit(struct net_device *old_dev,
 }
 EXPORT_SYMBOL(netdev_adjacent_change_commit);
 
-void netdev_adjacent_change_abort(struct net_device *old_dev,
-				  struct net_device *new_dev,
-				  struct net_device *dev)
+void netdev_adjacent_change_abort(struct net_device* old_dev, struct net_device* new_dev, struct net_device* dev)
 {
 	struct netdev_nested_priv priv = {
 		.flags = 0,
@@ -8340,17 +8264,14 @@ EXPORT_SYMBOL(netdev_adjacent_change_abort);
  * Send NETDEV_BONDING_INFO to netdev notifiers with info.
  * The caller must hold the RTNL lock.
  */
-void netdev_bonding_info_change(struct net_device *dev,
-				struct netdev_bonding_info *bonding_info)
+void netdev_bonding_info_change(struct net_device* dev, struct netdev_bonding_info* bonding_info)
 {
 	struct netdev_notifier_bonding_info info = {
 		.info.dev = dev,
 	};
 
-	memcpy(&info.bonding_info, bonding_info,
-	       sizeof(struct netdev_bonding_info));
-	call_netdevice_notifiers_info(NETDEV_BONDING_INFO,
-				      &info.info);
+	memcpy(&info.bonding_info, bonding_info, sizeof(struct netdev_bonding_info));
+	call_netdevice_notifiers_info(NETDEV_BONDING_INFO, &info.info);
 }
 EXPORT_SYMBOL(netdev_bonding_info_change);
 
@@ -8365,11 +8286,9 @@ EXPORT_SYMBOL(netdev_bonding_info_change);
  * %NULL is returned if no slave is found.
  */
 
-struct net_device *netdev_get_xmit_slave(struct net_device *dev,
-					 struct sk_buff *skb,
-					 bool all_slaves)
+struct net_device* netdev_get_xmit_slave(struct net_device* dev, struct sk_buff* skb, bool all_slaves)
 {
-	const struct net_device_ops *ops = dev->netdev_ops;
+	const struct net_device_ops* ops = dev->netdev_ops;
 
 	if (!ops->ndo_get_xmit_slave)
 		return NULL;
@@ -8377,10 +8296,9 @@ struct net_device *netdev_get_xmit_slave(struct net_device *dev,
 }
 EXPORT_SYMBOL(netdev_get_xmit_slave);
 
-static struct net_device *netdev_sk_get_lower_dev(struct net_device *dev,
-						  struct sock *sk)
+static struct net_device* netdev_sk_get_lower_dev(struct net_device* dev, struct sock* sk)
 {
-	const struct net_device_ops *ops = dev->netdev_ops;
+	const struct net_device_ops* ops = dev->netdev_ops;
 
 	if (!ops->ndo_sk_get_lower_dev)
 		return NULL;
@@ -8395,13 +8313,13 @@ static struct net_device *netdev_sk_get_lower_dev(struct net_device *dev,
  * %NULL is returned if no lower device is found.
  */
 
-struct net_device *netdev_sk_get_lowest_dev(struct net_device *dev,
-					    struct sock *sk)
+struct net_device* netdev_sk_get_lowest_dev(struct net_device* dev, struct sock* sk)
 {
-	struct net_device *lower;
+	struct net_device* lower;
 
 	lower = netdev_sk_get_lower_dev(dev, sk);
-	while (lower) {
+	while (lower)
+	{
 		dev = lower;
 		lower = netdev_sk_get_lower_dev(dev, sk);
 	}
@@ -8410,85 +8328,78 @@ struct net_device *netdev_sk_get_lowest_dev(struct net_device *dev,
 }
 EXPORT_SYMBOL(netdev_sk_get_lowest_dev);
 
-static void netdev_adjacent_add_links(struct net_device *dev)
+static void netdev_adjacent_add_links(struct net_device* dev)
 {
-	struct netdev_adjacent *iter;
+	struct netdev_adjacent* iter;
 
-	struct net *net = dev_net(dev);
+	struct net* net = dev_net(dev);
 
-	list_for_each_entry(iter, &dev->adj_list.upper, list) {
+	list_for_each_entry(iter, &dev->adj_list.upper, list)
+	{
 		if (!net_eq(net, dev_net(iter->dev)))
 			continue;
-		netdev_adjacent_sysfs_add(iter->dev, dev,
-					  &iter->dev->adj_list.lower);
-		netdev_adjacent_sysfs_add(dev, iter->dev,
-					  &dev->adj_list.upper);
+		netdev_adjacent_sysfs_add(iter->dev, dev, &iter->dev->adj_list.lower);
+		netdev_adjacent_sysfs_add(dev, iter->dev, &dev->adj_list.upper);
 	}
 
-	list_for_each_entry(iter, &dev->adj_list.lower, list) {
+	list_for_each_entry(iter, &dev->adj_list.lower, list)
+	{
 		if (!net_eq(net, dev_net(iter->dev)))
 			continue;
-		netdev_adjacent_sysfs_add(iter->dev, dev,
-					  &iter->dev->adj_list.upper);
-		netdev_adjacent_sysfs_add(dev, iter->dev,
-					  &dev->adj_list.lower);
+		netdev_adjacent_sysfs_add(iter->dev, dev, &iter->dev->adj_list.upper);
+		netdev_adjacent_sysfs_add(dev, iter->dev, &dev->adj_list.lower);
 	}
 }
 
-static void netdev_adjacent_del_links(struct net_device *dev)
+static void netdev_adjacent_del_links(struct net_device* dev)
 {
-	struct netdev_adjacent *iter;
+	struct netdev_adjacent* iter;
 
-	struct net *net = dev_net(dev);
+	struct net* net = dev_net(dev);
 
-	list_for_each_entry(iter, &dev->adj_list.upper, list) {
+	list_for_each_entry(iter, &dev->adj_list.upper, list)
+	{
 		if (!net_eq(net, dev_net(iter->dev)))
 			continue;
-		netdev_adjacent_sysfs_del(iter->dev, dev->name,
-					  &iter->dev->adj_list.lower);
-		netdev_adjacent_sysfs_del(dev, iter->dev->name,
-					  &dev->adj_list.upper);
+		netdev_adjacent_sysfs_del(iter->dev, dev->name, &iter->dev->adj_list.lower);
+		netdev_adjacent_sysfs_del(dev, iter->dev->name, &dev->adj_list.upper);
 	}
 
-	list_for_each_entry(iter, &dev->adj_list.lower, list) {
+	list_for_each_entry(iter, &dev->adj_list.lower, list)
+	{
 		if (!net_eq(net, dev_net(iter->dev)))
 			continue;
-		netdev_adjacent_sysfs_del(iter->dev, dev->name,
-					  &iter->dev->adj_list.upper);
-		netdev_adjacent_sysfs_del(dev, iter->dev->name,
-					  &dev->adj_list.lower);
+		netdev_adjacent_sysfs_del(iter->dev, dev->name, &iter->dev->adj_list.upper);
+		netdev_adjacent_sysfs_del(dev, iter->dev->name, &dev->adj_list.lower);
 	}
 }
 
-void netdev_adjacent_rename_links(struct net_device *dev, char *oldname)
+void netdev_adjacent_rename_links(struct net_device* dev, char* oldname)
 {
-	struct netdev_adjacent *iter;
+	struct netdev_adjacent* iter;
 
-	struct net *net = dev_net(dev);
+	struct net* net = dev_net(dev);
 
-	list_for_each_entry(iter, &dev->adj_list.upper, list) {
+	list_for_each_entry(iter, &dev->adj_list.upper, list)
+	{
 		if (!net_eq(net, dev_net(iter->dev)))
 			continue;
-		netdev_adjacent_sysfs_del(iter->dev, oldname,
-					  &iter->dev->adj_list.lower);
-		netdev_adjacent_sysfs_add(iter->dev, dev,
-					  &iter->dev->adj_list.lower);
+		netdev_adjacent_sysfs_del(iter->dev, oldname, &iter->dev->adj_list.lower);
+		netdev_adjacent_sysfs_add(iter->dev, dev, &iter->dev->adj_list.lower);
 	}
 
-	list_for_each_entry(iter, &dev->adj_list.lower, list) {
+	list_for_each_entry(iter, &dev->adj_list.lower, list)
+	{
 		if (!net_eq(net, dev_net(iter->dev)))
 			continue;
-		netdev_adjacent_sysfs_del(iter->dev, oldname,
-					  &iter->dev->adj_list.upper);
-		netdev_adjacent_sysfs_add(iter->dev, dev,
-					  &iter->dev->adj_list.upper);
+		netdev_adjacent_sysfs_del(iter->dev, oldname, &iter->dev->adj_list.upper);
+		netdev_adjacent_sysfs_add(iter->dev, dev, &iter->dev->adj_list.upper);
 	}
 }
 
-void *netdev_lower_dev_get_private(struct net_device *dev,
-				   struct net_device *lower_dev)
+void* netdev_lower_dev_get_private(struct net_device* dev, struct net_device* lower_dev)
 {
-	struct netdev_adjacent *lower;
+	struct netdev_adjacent* lower;
 
 	if (!lower_dev)
 		return NULL;
@@ -8500,7 +8411,6 @@ void *netdev_lower_dev_get_private(struct net_device *dev,
 }
 EXPORT_SYMBOL(netdev_lower_dev_get_private);
 
-
 /**
  * netdev_lower_state_changed - Dispatch event about lower device state change
  * @lower_dev: device
@@ -8509,8 +8419,7 @@ EXPORT_SYMBOL(netdev_lower_dev_get_private);
  * Send NETDEV_CHANGELOWERSTATE to netdev notifiers with info.
  * The caller must hold the RTNL lock.
  */
-void netdev_lower_state_changed(struct net_device *lower_dev,
-				void *lower_state_info)
+void netdev_lower_state_changed(struct net_device* lower_dev, void* lower_state_info)
 {
 	struct netdev_notifier_changelowerstate_info changelowerstate_info = {
 		.info.dev = lower_dev,
@@ -8518,20 +8427,19 @@ void netdev_lower_state_changed(struct net_device *lower_dev,
 
 	ASSERT_RTNL();
 	changelowerstate_info.lower_state_info = lower_state_info;
-	call_netdevice_notifiers_info(NETDEV_CHANGELOWERSTATE,
-				      &changelowerstate_info.info);
+	call_netdevice_notifiers_info(NETDEV_CHANGELOWERSTATE, &changelowerstate_info.info);
 }
 EXPORT_SYMBOL(netdev_lower_state_changed);
 
-static void dev_change_rx_flags(struct net_device *dev, int flags)
+static void dev_change_rx_flags(struct net_device* dev, int flags)
 {
-	const struct net_device_ops *ops = dev->netdev_ops;
+	const struct net_device_ops* ops = dev->netdev_ops;
 
 	if (ops->ndo_change_rx_flags)
 		ops->ndo_change_rx_flags(dev, flags);
 }
 
-static int __dev_set_promiscuity(struct net_device *dev, int inc, bool notify)
+static int __dev_set_promiscuity(struct net_device* dev, int inc, bool notify)
 {
 	unsigned int old_flags = dev->flags;
 	kuid_t uid;
@@ -8541,35 +8449,28 @@ static int __dev_set_promiscuity(struct net_device *dev, int inc, bool notify)
 
 	dev->flags |= IFF_PROMISC;
 	dev->promiscuity += inc;
-	if (dev->promiscuity == 0) {
+	if (dev->promiscuity == 0)
+	{
 		/*
 		 * Avoid overflow.
 		 * If inc causes overflow, untouch promisc and return error.
 		 */
 		if (inc < 0)
 			dev->flags &= ~IFF_PROMISC;
-		else {
+		else
+		{
 			dev->promiscuity -= inc;
-			pr_warn("%s: promiscuity touches roof, set promiscuity failed. promiscuity feature of device might be broken.\n",
-				dev->name);
+			pr_warn("%s: promiscuity touches roof, set promiscuity failed. promiscuity feature of device might be broken.\n", dev->name);
 			return -EOVERFLOW;
 		}
 	}
-	if (dev->flags != old_flags) {
-		pr_info("device %s %s promiscuous mode\n",
-			dev->name,
-			dev->flags & IFF_PROMISC ? "entered" : "left");
-		if (audit_enabled) {
+	if (dev->flags != old_flags)
+	{
+		pr_info("device %s %s promiscuous mode\n", dev->name, dev->flags & IFF_PROMISC ? "entered" : "left");
+		if (audit_enabled)
+		{
 			current_uid_gid(&uid, &gid);
-			audit_log(audit_context(), GFP_ATOMIC,
-				  AUDIT_ANOM_PROMISCUOUS,
-				  "dev=%s prom=%d old_prom=%d auid=%u uid=%u gid=%u ses=%u",
-				  dev->name, (dev->flags & IFF_PROMISC),
-				  (old_flags & IFF_PROMISC),
-				  from_kuid(&init_user_ns, audit_get_loginuid(current)),
-				  from_kuid(&init_user_ns, uid),
-				  from_kgid(&init_user_ns, gid),
-				  audit_get_sessionid(current));
+			audit_log(audit_context(), GFP_ATOMIC, AUDIT_ANOM_PROMISCUOUS, "dev=%s prom=%d old_prom=%d auid=%u uid=%u gid=%u ses=%u", dev->name, (dev->flags & IFF_PROMISC), (old_flags & IFF_PROMISC), from_kuid(&init_user_ns, audit_get_loginuid(current)), from_kuid(&init_user_ns, uid), from_kgid(&init_user_ns, gid), audit_get_sessionid(current));
 		}
 
 		dev_change_rx_flags(dev, IFF_PROMISC);
@@ -8590,7 +8491,7 @@ static int __dev_set_promiscuity(struct net_device *dev, int inc, bool notify)
  *	value is used to drop promiscuity on the device.
  *	Return 0 if successful or a negative errno code on error.
  */
-int dev_set_promiscuity(struct net_device *dev, int inc)
+int dev_set_promiscuity(struct net_device* dev, int inc)
 {
 	unsigned int old_flags = dev->flags;
 	int err;
@@ -8604,7 +8505,7 @@ int dev_set_promiscuity(struct net_device *dev, int inc)
 }
 EXPORT_SYMBOL(dev_set_promiscuity);
 
-static int __dev_set_allmulti(struct net_device *dev, int inc, bool notify)
+static int __dev_set_allmulti(struct net_device* dev, int inc, bool notify)
 {
 	unsigned int old_flags = dev->flags, old_gflags = dev->gflags;
 
@@ -8612,26 +8513,27 @@ static int __dev_set_allmulti(struct net_device *dev, int inc, bool notify)
 
 	dev->flags |= IFF_ALLMULTI;
 	dev->allmulti += inc;
-	if (dev->allmulti == 0) {
+	if (dev->allmulti == 0)
+	{
 		/*
 		 * Avoid overflow.
 		 * If inc causes overflow, untouch allmulti and return error.
 		 */
 		if (inc < 0)
 			dev->flags &= ~IFF_ALLMULTI;
-		else {
+		else
+		{
 			dev->allmulti -= inc;
-			pr_warn("%s: allmulti touches roof, set allmulti failed. allmulti feature of device might be broken.\n",
-				dev->name);
+			pr_warn("%s: allmulti touches roof, set allmulti failed. allmulti feature of device might be broken.\n", dev->name);
 			return -EOVERFLOW;
 		}
 	}
-	if (dev->flags ^ old_flags) {
+	if (dev->flags ^ old_flags)
+	{
 		dev_change_rx_flags(dev, IFF_ALLMULTI);
 		dev_set_rx_mode(dev);
 		if (notify)
-			__dev_notify_flags(dev, old_flags,
-					   dev->gflags ^ old_gflags);
+			__dev_notify_flags(dev, old_flags, dev->gflags ^ old_gflags);
 	}
 	return 0;
 }
@@ -8649,7 +8551,7 @@ static int __dev_set_allmulti(struct net_device *dev, int inc, bool notify)
  *	Return 0 if successful or a negative errno code on error.
  */
 
-int dev_set_allmulti(struct net_device *dev, int inc)
+int dev_set_allmulti(struct net_device* dev, int inc)
 {
 	return __dev_set_allmulti(dev, inc, true);
 }
@@ -8661,25 +8563,29 @@ EXPORT_SYMBOL(dev_set_allmulti);
  *	filtering it is put in promiscuous mode while unicast addresses
  *	are present.
  */
-void __dev_set_rx_mode(struct net_device *dev)
+void __dev_set_rx_mode(struct net_device* dev)
 {
-	const struct net_device_ops *ops = dev->netdev_ops;
+	const struct net_device_ops* ops = dev->netdev_ops;
 
 	/* dev_open will call this function so the list will stay sane. */
-	if (!(dev->flags&IFF_UP))
+	if (!(dev->flags & IFF_UP))
 		return;
 
 	if (!netif_device_present(dev))
 		return;
 
-	if (!(dev->priv_flags & IFF_UNICAST_FLT)) {
+	if (!(dev->priv_flags & IFF_UNICAST_FLT))
+	{
 		/* Unicast addresses changes may only happen under the rtnl,
 		 * therefore calling __dev_set_promiscuity here is safe.
 		 */
-		if (!netdev_uc_empty(dev) && !dev->uc_promisc) {
+		if (!netdev_uc_empty(dev) && !dev->uc_promisc)
+		{
 			__dev_set_promiscuity(dev, 1, false);
 			dev->uc_promisc = true;
-		} else if (netdev_uc_empty(dev) && dev->uc_promisc) {
+		}
+		else if (netdev_uc_empty(dev) && dev->uc_promisc)
+		{
 			__dev_set_promiscuity(dev, -1, false);
 			dev->uc_promisc = false;
 		}
@@ -8689,7 +8595,7 @@ void __dev_set_rx_mode(struct net_device *dev)
 		ops->ndo_set_rx_mode(dev);
 }
 
-void dev_set_rx_mode(struct net_device *dev)
+void dev_set_rx_mode(struct net_device* dev)
 {
 	netif_addr_lock_bh(dev);
 	__dev_set_rx_mode(dev);
@@ -8702,19 +8608,14 @@ void dev_set_rx_mode(struct net_device *dev)
  *
  *	Get the combination of flag bits exported through APIs to userspace.
  */
-unsigned int dev_get_flags(const struct net_device *dev)
+unsigned int dev_get_flags(const struct net_device* dev)
 {
 	unsigned int flags;
 
-	flags = (dev->flags & ~(IFF_PROMISC |
-				IFF_ALLMULTI |
-				IFF_RUNNING |
-				IFF_LOWER_UP |
-				IFF_DORMANT)) |
-		(dev->gflags & (IFF_PROMISC |
-				IFF_ALLMULTI));
+	flags = (dev->flags & ~(IFF_PROMISC | IFF_ALLMULTI | IFF_RUNNING | IFF_LOWER_UP | IFF_DORMANT)) | (dev->gflags & (IFF_PROMISC | IFF_ALLMULTI));
 
-	if (netif_running(dev)) {
+	if (netif_running(dev))
+	{
 		if (netif_oper_up(dev))
 			flags |= IFF_RUNNING;
 		if (netif_carrier_ok(dev))
@@ -8727,8 +8628,7 @@ unsigned int dev_get_flags(const struct net_device *dev)
 }
 EXPORT_SYMBOL(dev_get_flags);
 
-int __dev_change_flags(struct net_device *dev, unsigned int flags,
-		       struct netlink_ext_ack *extack)
+int __dev_change_flags(struct net_device* dev, unsigned int flags, struct netlink_ext_ack* extack)
 {
 	unsigned int old_flags = dev->flags;
 	int ret;
@@ -8739,11 +8639,7 @@ int __dev_change_flags(struct net_device *dev, unsigned int flags,
 	 *	Set the flags on our device.
 	 */
 
-	dev->flags = (flags & (IFF_DEBUG | IFF_NOTRAILERS | IFF_NOARP |
-			       IFF_DYNAMIC | IFF_MULTICAST | IFF_PORTSEL |
-			       IFF_AUTOMEDIA)) |
-		     (dev->flags & (IFF_UP | IFF_VOLATILE | IFF_PROMISC |
-				    IFF_ALLMULTI));
+	dev->flags = (flags & (IFF_DEBUG | IFF_NOTRAILERS | IFF_NOARP | IFF_DYNAMIC | IFF_MULTICAST | IFF_PORTSEL | IFF_AUTOMEDIA)) | (dev->flags & (IFF_UP | IFF_VOLATILE | IFF_PROMISC | IFF_ALLMULTI));
 
 	/*
 	 *	Load in the correct multicast list now the flags have changed.
@@ -8761,14 +8657,16 @@ int __dev_change_flags(struct net_device *dev, unsigned int flags,
 	 */
 
 	ret = 0;
-	if ((old_flags ^ flags) & IFF_UP) {
+	if ((old_flags ^ flags) & IFF_UP)
+	{
 		if (old_flags & IFF_UP)
 			__dev_close(dev);
 		else
 			ret = __dev_open(dev, extack);
 	}
 
-	if ((flags ^ dev->gflags) & IFF_PROMISC) {
+	if ((flags ^ dev->gflags) & IFF_PROMISC)
+	{
 		int inc = (flags & IFF_PROMISC) ? 1 : -1;
 		unsigned int old_flags = dev->flags;
 
@@ -8783,7 +8681,8 @@ int __dev_change_flags(struct net_device *dev, unsigned int flags,
 	 * is important. Some (broken) drivers set IFF_PROMISC, when
 	 * IFF_ALLMULTI is requested not asking us and not reporting.
 	 */
-	if ((flags ^ dev->gflags) & IFF_ALLMULTI) {
+	if ((flags ^ dev->gflags) & IFF_ALLMULTI)
+	{
 		int inc = (flags & IFF_ALLMULTI) ? 1 : -1;
 
 		dev->gflags ^= IFF_ALLMULTI;
@@ -8793,23 +8692,23 @@ int __dev_change_flags(struct net_device *dev, unsigned int flags,
 	return ret;
 }
 
-void __dev_notify_flags(struct net_device *dev, unsigned int old_flags,
-			unsigned int gchanges)
+void __dev_notify_flags(struct net_device* dev, unsigned int old_flags, unsigned int gchanges)
 {
 	unsigned int changes = dev->flags ^ old_flags;
 
 	if (gchanges)
 		rtmsg_ifinfo(RTM_NEWLINK, dev, gchanges, GFP_ATOMIC);
 
-	if (changes & IFF_UP) {
+	if (changes & IFF_UP)
+	{
 		if (dev->flags & IFF_UP)
 			call_netdevice_notifiers(NETDEV_UP, dev);
 		else
 			call_netdevice_notifiers(NETDEV_DOWN, dev);
 	}
 
-	if (dev->flags & IFF_UP &&
-	    (changes & ~(IFF_UP | IFF_PROMISC | IFF_ALLMULTI | IFF_VOLATILE))) {
+	if (dev->flags & IFF_UP && (changes & ~(IFF_UP | IFF_PROMISC | IFF_ALLMULTI | IFF_VOLATILE)))
+	{
 		struct netdev_notifier_change_info change_info = {
 			.info = {
 				.dev = dev,
@@ -8830,8 +8729,7 @@ void __dev_notify_flags(struct net_device *dev, unsigned int old_flags,
  *	Change settings on device based state flags. The flags are
  *	in the userspace exported format.
  */
-int dev_change_flags(struct net_device *dev, unsigned int flags,
-		     struct netlink_ext_ack *extack)
+int dev_change_flags(struct net_device* dev, unsigned int flags, struct netlink_ext_ack* extack)
 {
 	int ret;
 	unsigned int changes, old_flags = dev->flags, old_gflags = dev->gflags;
@@ -8846,9 +8744,9 @@ int dev_change_flags(struct net_device *dev, unsigned int flags,
 }
 EXPORT_SYMBOL(dev_change_flags);
 
-int __dev_set_mtu(struct net_device *dev, int new_mtu)
+int __dev_set_mtu(struct net_device* dev, int new_mtu)
 {
-	const struct net_device_ops *ops = dev->netdev_ops;
+	const struct net_device_ops* ops = dev->netdev_ops;
 
 	if (ops->ndo_change_mtu)
 		return ops->ndo_change_mtu(dev, new_mtu);
@@ -8859,16 +8757,17 @@ int __dev_set_mtu(struct net_device *dev, int new_mtu)
 }
 EXPORT_SYMBOL(__dev_set_mtu);
 
-int dev_validate_mtu(struct net_device *dev, int new_mtu,
-		     struct netlink_ext_ack *extack)
+int dev_validate_mtu(struct net_device* dev, int new_mtu, struct netlink_ext_ack* extack)
 {
 	/* MTU must be positive, and in range */
-	if (new_mtu < 0 || new_mtu < dev->min_mtu) {
+	if (new_mtu < 0 || new_mtu < dev->min_mtu)
+	{
 		NL_SET_ERR_MSG(extack, "mtu less than device minimum");
 		return -EINVAL;
 	}
 
-	if (dev->max_mtu > 0 && new_mtu > dev->max_mtu) {
+	if (dev->max_mtu > 0 && new_mtu > dev->max_mtu)
+	{
 		NL_SET_ERR_MSG(extack, "mtu greater than device maximum");
 		return -EINVAL;
 	}
@@ -8883,8 +8782,7 @@ int dev_validate_mtu(struct net_device *dev, int new_mtu,
  *
  *	Change the maximum transfer size of the network device.
  */
-int dev_set_mtu_ext(struct net_device *dev, int new_mtu,
-		    struct netlink_ext_ack *extack)
+int dev_set_mtu_ext(struct net_device* dev, int new_mtu, struct netlink_ext_ack* extack)
 {
 	int err, orig_mtu;
 
@@ -8906,23 +8804,23 @@ int dev_set_mtu_ext(struct net_device *dev, int new_mtu,
 	orig_mtu = dev->mtu;
 	err = __dev_set_mtu(dev, new_mtu);
 
-	if (!err) {
-		err = call_netdevice_notifiers_mtu(NETDEV_CHANGEMTU, dev,
-						   orig_mtu);
+	if (!err)
+	{
+		err = call_netdevice_notifiers_mtu(NETDEV_CHANGEMTU, dev, orig_mtu);
 		err = notifier_to_errno(err);
-		if (err) {
+		if (err)
+		{
 			/* setting mtu back and notifying everyone again,
 			 * so that they have a chance to revert changes.
 			 */
 			__dev_set_mtu(dev, orig_mtu);
-			call_netdevice_notifiers_mtu(NETDEV_CHANGEMTU, dev,
-						     new_mtu);
+			call_netdevice_notifiers_mtu(NETDEV_CHANGEMTU, dev, new_mtu);
 		}
 	}
 	return err;
 }
 
-int dev_set_mtu(struct net_device *dev, int new_mtu)
+int dev_set_mtu(struct net_device* dev, int new_mtu)
 {
 	struct netlink_ext_ack extack;
 	int err;
@@ -8940,7 +8838,7 @@ EXPORT_SYMBOL(dev_set_mtu);
  *	@dev: device
  *	@new_len: new tx queue length
  */
-int dev_change_tx_queue_len(struct net_device *dev, unsigned long new_len)
+int dev_change_tx_queue_len(struct net_device* dev, unsigned long new_len)
 {
 	unsigned int orig_len = dev->tx_queue_len;
 	int res;
@@ -8948,7 +8846,8 @@ int dev_change_tx_queue_len(struct net_device *dev, unsigned long new_len)
 	if (new_len != (unsigned int)new_len)
 		return -ERANGE;
 
-	if (new_len != orig_len) {
+	if (new_len != orig_len)
+	{
 		dev->tx_queue_len = new_len;
 		res = call_netdevice_notifiers(NETDEV_CHANGE_TX_QUEUE_LEN, dev);
 		res = notifier_to_errno(res);
@@ -8972,7 +8871,7 @@ err_rollback:
  *	@dev: device
  *	@new_group: group this device should belong to
  */
-void dev_set_group(struct net_device *dev, int new_group)
+void dev_set_group(struct net_device* dev, int new_group)
 {
 	dev->group = new_group;
 }
@@ -8984,8 +8883,7 @@ EXPORT_SYMBOL(dev_set_group);
  *	@addr: new address
  *	@extack: netlink extended ack
  */
-int dev_pre_changeaddr_notify(struct net_device *dev, const char *addr,
-			      struct netlink_ext_ack *extack)
+int dev_pre_changeaddr_notify(struct net_device* dev, const char* addr, struct netlink_ext_ack* extack)
 {
 	struct netdev_notifier_pre_changeaddr_info info = {
 		.info.dev = dev,
@@ -9007,10 +8905,9 @@ EXPORT_SYMBOL(dev_pre_changeaddr_notify);
  *
  *	Change the hardware (MAC) address of the device
  */
-int dev_set_mac_address(struct net_device *dev, struct sockaddr *sa,
-			struct netlink_ext_ack *extack)
+int dev_set_mac_address(struct net_device* dev, struct sockaddr* sa, struct netlink_ext_ack* extack)
 {
-	const struct net_device_ops *ops = dev->netdev_ops;
+	const struct net_device_ops* ops = dev->netdev_ops;
 	int err;
 
 	if (!ops->ndo_set_mac_address)
@@ -9034,8 +8931,7 @@ EXPORT_SYMBOL(dev_set_mac_address);
 
 static DECLARE_RWSEM(dev_addr_sem);
 
-int dev_set_mac_address_user(struct net_device *dev, struct sockaddr *sa,
-			     struct netlink_ext_ack *extack)
+int dev_set_mac_address_user(struct net_device* dev, struct sockaddr* sa, struct netlink_ext_ack* extack)
 {
 	int ret;
 
@@ -9046,25 +8942,25 @@ int dev_set_mac_address_user(struct net_device *dev, struct sockaddr *sa,
 }
 EXPORT_SYMBOL(dev_set_mac_address_user);
 
-int dev_get_mac_address(struct sockaddr *sa, struct net *net, char *dev_name)
+int dev_get_mac_address(struct sockaddr* sa, struct net* net, char* dev_name)
 {
 	size_t size = sizeof(sa->sa_data);
-	struct net_device *dev;
+	struct net_device* dev;
 	int ret = 0;
 
 	down_read(&dev_addr_sem);
 	rcu_read_lock();
 
 	dev = dev_get_by_name_rcu(net, dev_name);
-	if (!dev) {
+	if (!dev)
+	{
 		ret = -ENODEV;
 		goto unlock;
 	}
 	if (!dev->addr_len)
 		memset(sa->sa_data, 0, size);
 	else
-		memcpy(sa->sa_data, dev->dev_addr,
-		       min_t(size_t, size, dev->addr_len));
+		memcpy(sa->sa_data, dev->dev_addr, min_t(size_t, size, dev->addr_len));
 	sa->sa_family = dev->type;
 
 unlock:
@@ -9081,9 +8977,9 @@ EXPORT_SYMBOL(dev_get_mac_address);
  *
  *	Change device carrier
  */
-int dev_change_carrier(struct net_device *dev, bool new_carrier)
+int dev_change_carrier(struct net_device* dev, bool new_carrier)
 {
-	const struct net_device_ops *ops = dev->netdev_ops;
+	const struct net_device_ops* ops = dev->netdev_ops;
 
 	if (!ops->ndo_change_carrier)
 		return -EOPNOTSUPP;
@@ -9100,10 +8996,9 @@ EXPORT_SYMBOL(dev_change_carrier);
  *
  *	Get device physical port ID
  */
-int dev_get_phys_port_id(struct net_device *dev,
-			 struct netdev_phys_item_id *ppid)
+int dev_get_phys_port_id(struct net_device* dev, struct netdev_phys_item_id* ppid)
 {
-	const struct net_device_ops *ops = dev->netdev_ops;
+	const struct net_device_ops* ops = dev->netdev_ops;
 
 	if (!ops->ndo_get_phys_port_id)
 		return -EOPNOTSUPP;
@@ -9119,13 +9014,13 @@ EXPORT_SYMBOL(dev_get_phys_port_id);
  *
  *	Get device physical port name
  */
-int dev_get_phys_port_name(struct net_device *dev,
-			   char *name, size_t len)
+int dev_get_phys_port_name(struct net_device* dev, char* name, size_t len)
 {
-	const struct net_device_ops *ops = dev->netdev_ops;
+	const struct net_device_ops* ops = dev->netdev_ops;
 	int err;
 
-	if (ops->ndo_get_phys_port_name) {
+	if (ops->ndo_get_phys_port_name)
+	{
 		err = ops->ndo_get_phys_port_name(dev, name, len);
 		if (err != -EOPNOTSUPP)
 			return err;
@@ -9142,17 +9037,16 @@ EXPORT_SYMBOL(dev_get_phys_port_name);
  *
  *	Get the devices's port parent identifier
  */
-int dev_get_port_parent_id(struct net_device *dev,
-			   struct netdev_phys_item_id *ppid,
-			   bool recurse)
+int dev_get_port_parent_id(struct net_device* dev, struct netdev_phys_item_id* ppid, bool recurse)
 {
-	const struct net_device_ops *ops = dev->netdev_ops;
-	struct netdev_phys_item_id first = { };
-	struct net_device *lower_dev;
-	struct list_head *iter;
+	const struct net_device_ops* ops = dev->netdev_ops;
+	struct netdev_phys_item_id first = {};
+	struct net_device* lower_dev;
+	struct list_head* iter;
 	int err;
 
-	if (ops->ndo_get_port_parent_id) {
+	if (ops->ndo_get_port_parent_id)
+	{
 		err = ops->ndo_get_port_parent_id(dev, ppid);
 		if (err != -EOPNOTSUPP)
 			return err;
@@ -9165,7 +9059,8 @@ int dev_get_port_parent_id(struct net_device *dev,
 	if (!recurse)
 		return -EOPNOTSUPP;
 
-	netdev_for_each_lower_dev(dev, lower_dev, iter) {
+	netdev_for_each_lower_dev(dev, lower_dev, iter)
+	{
 		err = dev_get_port_parent_id(lower_dev, ppid, recurse);
 		if (err)
 			break;
@@ -9185,13 +9080,12 @@ EXPORT_SYMBOL(dev_get_port_parent_id);
  *	@a: first network device
  *	@b: second network device
  */
-bool netdev_port_same_parent_id(struct net_device *a, struct net_device *b)
+bool netdev_port_same_parent_id(struct net_device* a, struct net_device* b)
 {
-	struct netdev_phys_item_id a_id = { };
-	struct netdev_phys_item_id b_id = { };
+	struct netdev_phys_item_id a_id = {};
+	struct netdev_phys_item_id b_id = {};
 
-	if (dev_get_port_parent_id(a, &a_id, true) ||
-	    dev_get_port_parent_id(b, &b_id, true))
+	if (dev_get_port_parent_id(a, &a_id, true) || dev_get_port_parent_id(b, &b_id, true))
 		return false;
 
 	return netdev_phys_item_id_same(&a_id, &b_id);
@@ -9206,9 +9100,9 @@ EXPORT_SYMBOL(netdev_port_same_parent_id);
  *	This info can be used by switch drivers to set the phys state of the
  *	port.
  */
-int dev_change_proto_down(struct net_device *dev, bool proto_down)
+int dev_change_proto_down(struct net_device* dev, bool proto_down)
 {
-	const struct net_device_ops *ops = dev->netdev_ops;
+	const struct net_device_ops* ops = dev->netdev_ops;
 
 	if (!ops->ndo_change_proto_down)
 		return -EOPNOTSUPP;
@@ -9226,7 +9120,7 @@ EXPORT_SYMBOL(dev_change_proto_down);
  *	@dev: device
  *	@proto_down: new value
  */
-int dev_change_proto_down_generic(struct net_device *dev, bool proto_down)
+int dev_change_proto_down_generic(struct net_device* dev, bool proto_down)
 {
 	if (proto_down)
 		netif_carrier_off(dev);
@@ -9244,15 +9138,18 @@ EXPORT_SYMBOL(dev_change_proto_down_generic);
  *	@mask: proto down mask
  *	@value: proto down value
  */
-void dev_change_proto_down_reason(struct net_device *dev, unsigned long mask,
-				  u32 value)
+void dev_change_proto_down_reason(struct net_device* dev, unsigned long mask, u32 value)
 {
 	int b;
 
-	if (!mask) {
+	if (!mask)
+	{
 		dev->proto_down_reason = value;
-	} else {
-		for_each_set_bit(b, &mask, 32) {
+	}
+	else
+	{
+		for_each_set_bit(b, &mask, 32)
+		{
 			if (value & (1 << b))
 				dev->proto_down_reason |= BIT(b);
 			else
@@ -9262,13 +9159,14 @@ void dev_change_proto_down_reason(struct net_device *dev, unsigned long mask,
 }
 EXPORT_SYMBOL(dev_change_proto_down_reason);
 
-struct bpf_xdp_link {
+struct bpf_xdp_link
+{
 	struct bpf_link link;
-	struct net_device *dev; /* protected by rtnl_lock, no refcnt held */
+	struct net_device* dev; /* protected by rtnl_lock, no refcnt held */
 	int flags;
 };
 
-static enum bpf_xdp_mode dev_xdp_mode(struct net_device *dev, u32 flags)
+static enum bpf_xdp_mode dev_xdp_mode(struct net_device* dev, u32 flags)
 {
 	if (flags & XDP_FLAGS_HW_MODE)
 		return XDP_MODE_HW;
@@ -9279,9 +9177,10 @@ static enum bpf_xdp_mode dev_xdp_mode(struct net_device *dev, u32 flags)
 	return dev->netdev_ops->ndo_bpf ? XDP_MODE_DRV : XDP_MODE_SKB;
 }
 
-static bpf_op_t dev_xdp_bpf_op(struct net_device *dev, enum bpf_xdp_mode mode)
+static bpf_op_t dev_xdp_bpf_op(struct net_device* dev, enum bpf_xdp_mode mode)
 {
-	switch (mode) {
+	switch (mode)
+	{
 	case XDP_MODE_SKB:
 		return generic_xdp_install;
 	case XDP_MODE_DRV:
@@ -9292,23 +9191,21 @@ static bpf_op_t dev_xdp_bpf_op(struct net_device *dev, enum bpf_xdp_mode mode)
 	}
 }
 
-static struct bpf_xdp_link *dev_xdp_link(struct net_device *dev,
-					 enum bpf_xdp_mode mode)
+static struct bpf_xdp_link* dev_xdp_link(struct net_device* dev, enum bpf_xdp_mode mode)
 {
 	return dev->xdp_state[mode].link;
 }
 
-static struct bpf_prog *dev_xdp_prog(struct net_device *dev,
-				     enum bpf_xdp_mode mode)
+static struct bpf_prog* dev_xdp_prog(struct net_device* dev, enum bpf_xdp_mode mode)
 {
-	struct bpf_xdp_link *link = dev_xdp_link(dev, mode);
+	struct bpf_xdp_link* link = dev_xdp_link(dev, mode);
 
 	if (link)
 		return link->link.prog;
 	return dev->xdp_state[mode].prog;
 }
 
-u8 dev_xdp_prog_count(struct net_device *dev)
+u8 dev_xdp_prog_count(struct net_device* dev)
 {
 	u8 count = 0;
 	int i;
@@ -9320,30 +9217,26 @@ u8 dev_xdp_prog_count(struct net_device *dev)
 }
 EXPORT_SYMBOL_GPL(dev_xdp_prog_count);
 
-u32 dev_xdp_prog_id(struct net_device *dev, enum bpf_xdp_mode mode)
+u32 dev_xdp_prog_id(struct net_device* dev, enum bpf_xdp_mode mode)
 {
-	struct bpf_prog *prog = dev_xdp_prog(dev, mode);
+	struct bpf_prog* prog = dev_xdp_prog(dev, mode);
 
 	return prog ? prog->aux->id : 0;
 }
 
-static void dev_xdp_set_link(struct net_device *dev, enum bpf_xdp_mode mode,
-			     struct bpf_xdp_link *link)
+static void dev_xdp_set_link(struct net_device* dev, enum bpf_xdp_mode mode, struct bpf_xdp_link* link)
 {
 	dev->xdp_state[mode].link = link;
 	dev->xdp_state[mode].prog = NULL;
 }
 
-static void dev_xdp_set_prog(struct net_device *dev, enum bpf_xdp_mode mode,
-			     struct bpf_prog *prog)
+static void dev_xdp_set_prog(struct net_device* dev, enum bpf_xdp_mode mode, struct bpf_prog* prog)
 {
 	dev->xdp_state[mode].link = NULL;
 	dev->xdp_state[mode].prog = prog;
 }
 
-static int dev_xdp_install(struct net_device *dev, enum bpf_xdp_mode mode,
-			   bpf_op_t bpf_op, struct netlink_ext_ack *extack,
-			   u32 flags, struct bpf_prog *prog)
+static int dev_xdp_install(struct net_device* dev, enum bpf_xdp_mode mode, bpf_op_t bpf_op, struct netlink_ext_ack* extack, u32 flags, struct bpf_prog* prog)
 {
 	struct netdev_bpf xdp;
 	int err;
@@ -9363,7 +9256,8 @@ static int dev_xdp_install(struct net_device *dev, enum bpf_xdp_mode mode,
 	if (prog)
 		bpf_prog_inc(prog);
 	err = bpf_op(dev, &xdp);
-	if (err) {
+	if (err)
+	{
 		if (prog)
 			bpf_prog_put(prog);
 		return err;
@@ -9375,16 +9269,17 @@ static int dev_xdp_install(struct net_device *dev, enum bpf_xdp_mode mode,
 	return 0;
 }
 
-static void dev_xdp_uninstall(struct net_device *dev)
+static void dev_xdp_uninstall(struct net_device* dev)
 {
-	struct bpf_xdp_link *link;
-	struct bpf_prog *prog;
+	struct bpf_xdp_link* link;
+	struct bpf_prog* prog;
 	enum bpf_xdp_mode mode;
 	bpf_op_t bpf_op;
 
 	ASSERT_RTNL();
 
-	for (mode = XDP_MODE_SKB; mode < __MAX_XDP_MODE; mode++) {
+	for (mode = XDP_MODE_SKB; mode < __MAX_XDP_MODE; mode++)
+	{
 		prog = dev_xdp_prog(dev, mode);
 		if (!prog)
 			continue;
@@ -9406,14 +9301,12 @@ static void dev_xdp_uninstall(struct net_device *dev)
 	}
 }
 
-static int dev_xdp_attach(struct net_device *dev, struct netlink_ext_ack *extack,
-			  struct bpf_xdp_link *link, struct bpf_prog *new_prog,
-			  struct bpf_prog *old_prog, u32 flags)
+static int dev_xdp_attach(struct net_device* dev, struct netlink_ext_ack* extack, struct bpf_xdp_link* link, struct bpf_prog* new_prog, struct bpf_prog* old_prog, u32 flags)
 {
 	unsigned int num_modes = hweight32(flags & XDP_FLAGS_MODES);
-	struct bpf_prog *cur_prog;
-	struct net_device *upper;
-	struct list_head *iter;
+	struct bpf_prog* cur_prog;
+	struct net_device* upper;
+	struct list_head* iter;
 	enum bpf_xdp_mode mode;
 	bpf_op_t bpf_op;
 	int err;
@@ -9424,37 +9317,43 @@ static int dev_xdp_attach(struct net_device *dev, struct netlink_ext_ack *extack
 	if (link && (new_prog || old_prog))
 		return -EINVAL;
 	/* link supports only XDP mode flags */
-	if (link && (flags & ~XDP_FLAGS_MODES)) {
+	if (link && (flags & ~XDP_FLAGS_MODES))
+	{
 		NL_SET_ERR_MSG(extack, "Invalid XDP flags for BPF link attachment");
 		return -EINVAL;
 	}
 	/* just one XDP mode bit should be set, zero defaults to drv/skb mode */
-	if (num_modes > 1) {
+	if (num_modes > 1)
+	{
 		NL_SET_ERR_MSG(extack, "Only one XDP mode flag can be set");
 		return -EINVAL;
 	}
 	/* avoid ambiguity if offload + drv/skb mode progs are both loaded */
-	if (!num_modes && dev_xdp_prog_count(dev) > 1) {
-		NL_SET_ERR_MSG(extack,
-			       "More than one program loaded, unset mode is ambiguous");
+	if (!num_modes && dev_xdp_prog_count(dev) > 1)
+	{
+		NL_SET_ERR_MSG(extack, "More than one program loaded, unset mode is ambiguous");
 		return -EINVAL;
 	}
 	/* old_prog != NULL implies XDP_FLAGS_REPLACE is set */
-	if (old_prog && !(flags & XDP_FLAGS_REPLACE)) {
+	if (old_prog && !(flags & XDP_FLAGS_REPLACE))
+	{
 		NL_SET_ERR_MSG(extack, "XDP_FLAGS_REPLACE is not specified");
 		return -EINVAL;
 	}
 
 	mode = dev_xdp_mode(dev, flags);
 	/* can't replace attached link */
-	if (dev_xdp_link(dev, mode)) {
+	if (dev_xdp_link(dev, mode))
+	{
 		NL_SET_ERR_MSG(extack, "Can't replace active BPF XDP link");
 		return -EBUSY;
 	}
 
 	/* don't allow if an upper device already has a program */
-	netdev_for_each_upper_dev_rcu(dev, upper, iter) {
-		if (dev_xdp_prog_count(upper) > 0) {
+	netdev_for_each_upper_dev_rcu(dev, upper, iter)
+	{
+		if (dev_xdp_prog_count(upper) > 0)
+		{
 			NL_SET_ERR_MSG(extack, "Cannot attach when an upper device already has a program");
 			return -EEXIST;
 		}
@@ -9462,11 +9361,13 @@ static int dev_xdp_attach(struct net_device *dev, struct netlink_ext_ack *extack
 
 	cur_prog = dev_xdp_prog(dev, mode);
 	/* can't replace attached prog with link */
-	if (link && cur_prog) {
+	if (link && cur_prog)
+	{
 		NL_SET_ERR_MSG(extack, "Can't replace active XDP program with BPF link");
 		return -EBUSY;
 	}
-	if ((flags & XDP_FLAGS_REPLACE) && cur_prog != old_prog) {
+	if ((flags & XDP_FLAGS_REPLACE) && cur_prog != old_prog)
+	{
 		NL_SET_ERR_MSG(extack, "Active program does not match expected");
 		return -EEXIST;
 	}
@@ -9475,37 +9376,44 @@ static int dev_xdp_attach(struct net_device *dev, struct netlink_ext_ack *extack
 	if (link)
 		new_prog = link->link.prog;
 
-	if (new_prog) {
+	if (new_prog)
+	{
 		bool offload = mode == XDP_MODE_HW;
-		enum bpf_xdp_mode other_mode = mode == XDP_MODE_SKB
-					       ? XDP_MODE_DRV : XDP_MODE_SKB;
+		enum bpf_xdp_mode other_mode = mode == XDP_MODE_SKB ? XDP_MODE_DRV : XDP_MODE_SKB;
 
-		if ((flags & XDP_FLAGS_UPDATE_IF_NOEXIST) && cur_prog) {
+		if ((flags & XDP_FLAGS_UPDATE_IF_NOEXIST) && cur_prog)
+		{
 			NL_SET_ERR_MSG(extack, "XDP program already attached");
 			return -EBUSY;
 		}
-		if (!offload && dev_xdp_prog(dev, other_mode)) {
+		if (!offload && dev_xdp_prog(dev, other_mode))
+		{
 			NL_SET_ERR_MSG(extack, "Native and generic XDP can't be active at the same time");
 			return -EEXIST;
 		}
-		if (!offload && bpf_prog_is_dev_bound(new_prog->aux)) {
+		if (!offload && bpf_prog_is_dev_bound(new_prog->aux))
+		{
 			NL_SET_ERR_MSG(extack, "Using device-bound program without HW_MODE flag is not supported");
 			return -EINVAL;
 		}
-		if (new_prog->expected_attach_type == BPF_XDP_DEVMAP) {
+		if (new_prog->expected_attach_type == BPF_XDP_DEVMAP)
+		{
 			NL_SET_ERR_MSG(extack, "BPF_XDP_DEVMAP programs can not be attached to a device");
 			return -EINVAL;
 		}
-		if (new_prog->expected_attach_type == BPF_XDP_CPUMAP) {
+		if (new_prog->expected_attach_type == BPF_XDP_CPUMAP)
+		{
 			NL_SET_ERR_MSG(extack, "BPF_XDP_CPUMAP programs can not be attached to a device");
 			return -EINVAL;
 		}
 	}
 
 	/* don't call drivers if the effective program didn't change */
-	if (new_prog != cur_prog) {
+	if (new_prog != cur_prog)
+	{
 		bpf_op = dev_xdp_bpf_op(dev, mode);
-		if (!bpf_op) {
+		if (!bpf_op)
+		{
 			NL_SET_ERR_MSG(extack, "Underlying driver does not support XDP in native mode");
 			return -EOPNOTSUPP;
 		}
@@ -9525,16 +9433,12 @@ static int dev_xdp_attach(struct net_device *dev, struct netlink_ext_ack *extack
 	return 0;
 }
 
-static int dev_xdp_attach_link(struct net_device *dev,
-			       struct netlink_ext_ack *extack,
-			       struct bpf_xdp_link *link)
+static int dev_xdp_attach_link(struct net_device* dev, struct netlink_ext_ack* extack, struct bpf_xdp_link* link)
 {
 	return dev_xdp_attach(dev, extack, link, NULL, NULL, link->flags);
 }
 
-static int dev_xdp_detach_link(struct net_device *dev,
-			       struct netlink_ext_ack *extack,
-			       struct bpf_xdp_link *link)
+static int dev_xdp_detach_link(struct net_device* dev, struct netlink_ext_ack* extack, struct bpf_xdp_link* link)
 {
 	enum bpf_xdp_mode mode;
 	bpf_op_t bpf_op;
@@ -9551,16 +9455,17 @@ static int dev_xdp_detach_link(struct net_device *dev,
 	return 0;
 }
 
-static void bpf_xdp_link_release(struct bpf_link *link)
+static void bpf_xdp_link_release(struct bpf_link* link)
 {
-	struct bpf_xdp_link *xdp_link = container_of(link, struct bpf_xdp_link, link);
+	struct bpf_xdp_link* xdp_link = container_of(link, struct bpf_xdp_link, link);
 
 	rtnl_lock();
 
 	/* if racing with net_device's tear down, xdp_link->dev might be
 	 * already NULL, in which case link was already auto-detached
 	 */
-	if (xdp_link->dev) {
+	if (xdp_link->dev)
+	{
 		WARN_ON(dev_xdp_detach_link(xdp_link->dev, NULL, xdp_link));
 		xdp_link->dev = NULL;
 	}
@@ -9568,23 +9473,22 @@ static void bpf_xdp_link_release(struct bpf_link *link)
 	rtnl_unlock();
 }
 
-static int bpf_xdp_link_detach(struct bpf_link *link)
+static int bpf_xdp_link_detach(struct bpf_link* link)
 {
 	bpf_xdp_link_release(link);
 	return 0;
 }
 
-static void bpf_xdp_link_dealloc(struct bpf_link *link)
+static void bpf_xdp_link_dealloc(struct bpf_link* link)
 {
-	struct bpf_xdp_link *xdp_link = container_of(link, struct bpf_xdp_link, link);
+	struct bpf_xdp_link* xdp_link = container_of(link, struct bpf_xdp_link, link);
 
 	kfree(xdp_link);
 }
 
-static void bpf_xdp_link_show_fdinfo(const struct bpf_link *link,
-				     struct seq_file *seq)
+static void bpf_xdp_link_show_fdinfo(const struct bpf_link* link, struct seq_file* seq)
 {
-	struct bpf_xdp_link *xdp_link = container_of(link, struct bpf_xdp_link, link);
+	struct bpf_xdp_link* xdp_link = container_of(link, struct bpf_xdp_link, link);
 	u32 ifindex = 0;
 
 	rtnl_lock();
@@ -9595,10 +9499,9 @@ static void bpf_xdp_link_show_fdinfo(const struct bpf_link *link,
 	seq_printf(seq, "ifindex:\t%u\n", ifindex);
 }
 
-static int bpf_xdp_link_fill_link_info(const struct bpf_link *link,
-				       struct bpf_link_info *info)
+static int bpf_xdp_link_fill_link_info(const struct bpf_link* link, struct bpf_link_info* info)
 {
-	struct bpf_xdp_link *xdp_link = container_of(link, struct bpf_xdp_link, link);
+	struct bpf_xdp_link* xdp_link = container_of(link, struct bpf_xdp_link, link);
 	u32 ifindex = 0;
 
 	rtnl_lock();
@@ -9610,10 +9513,9 @@ static int bpf_xdp_link_fill_link_info(const struct bpf_link *link,
 	return 0;
 }
 
-static int bpf_xdp_link_update(struct bpf_link *link, struct bpf_prog *new_prog,
-			       struct bpf_prog *old_prog)
+static int bpf_xdp_link_update(struct bpf_link* link, struct bpf_prog* new_prog, struct bpf_prog* old_prog)
 {
-	struct bpf_xdp_link *xdp_link = container_of(link, struct bpf_xdp_link, link);
+	struct bpf_xdp_link* xdp_link = container_of(link, struct bpf_xdp_link, link);
 	enum bpf_xdp_mode mode;
 	bpf_op_t bpf_op;
 	int err = 0;
@@ -9621,17 +9523,20 @@ static int bpf_xdp_link_update(struct bpf_link *link, struct bpf_prog *new_prog,
 	rtnl_lock();
 
 	/* link might have been auto-released already, so fail */
-	if (!xdp_link->dev) {
+	if (!xdp_link->dev)
+	{
 		err = -ENOLINK;
 		goto out_unlock;
 	}
 
-	if (old_prog && link->prog != old_prog) {
+	if (old_prog && link->prog != old_prog)
+	{
 		err = -EPERM;
 		goto out_unlock;
 	}
 	old_prog = link->prog;
-	if (old_prog == new_prog) {
+	if (old_prog == new_prog)
+	{
 		/* no-op, don't disturb drivers */
 		bpf_prog_put(new_prog);
 		goto out_unlock;
@@ -9639,8 +9544,7 @@ static int bpf_xdp_link_update(struct bpf_link *link, struct bpf_prog *new_prog,
 
 	mode = dev_xdp_mode(xdp_link->dev, xdp_link->flags);
 	bpf_op = dev_xdp_bpf_op(xdp_link->dev, mode);
-	err = dev_xdp_install(xdp_link->dev, mode, bpf_op, NULL,
-			      xdp_link->flags, new_prog);
+	err = dev_xdp_install(xdp_link->dev, mode, bpf_op, NULL, xdp_link->flags, new_prog);
 	if (err)
 		goto out_unlock;
 
@@ -9661,23 +9565,25 @@ static const struct bpf_link_ops bpf_xdp_link_lops = {
 	.update_prog = bpf_xdp_link_update,
 };
 
-int bpf_xdp_link_attach(const union bpf_attr *attr, struct bpf_prog *prog)
+int bpf_xdp_link_attach(const union bpf_attr* attr, struct bpf_prog* prog)
 {
-	struct net *net = current->nsproxy->net_ns;
+	struct net* net = current->nsproxy->net_ns;
 	struct bpf_link_primer link_primer;
-	struct bpf_xdp_link *link;
-	struct net_device *dev;
+	struct bpf_xdp_link* link;
+	struct net_device* dev;
 	int err, fd;
 
 	rtnl_lock();
 	dev = dev_get_by_index(net, attr->link_create.target_ifindex);
-	if (!dev) {
+	if (!dev)
+	{
 		rtnl_unlock();
 		return -EINVAL;
 	}
 
 	link = kzalloc(sizeof(*link), GFP_USER);
-	if (!link) {
+	if (!link)
+	{
 		err = -ENOMEM;
 		goto unlock;
 	}
@@ -9687,7 +9593,8 @@ int bpf_xdp_link_attach(const union bpf_attr *attr, struct bpf_prog *prog)
 	link->flags = attr->link_create.flags;
 
 	err = bpf_link_prime(&link->link, &link_primer);
-	if (err) {
+	if (err)
+	{
 		kfree(link);
 		goto unlock;
 	}
@@ -9695,7 +9602,8 @@ int bpf_xdp_link_attach(const union bpf_attr *attr, struct bpf_prog *prog)
 	err = dev_xdp_attach_link(dev, NULL, link);
 	rtnl_unlock();
 
-	if (err) {
+	if (err)
+	{
 		link->dev = NULL;
 		bpf_link_cleanup(&link_primer);
 		goto out_put_dev;
@@ -9724,8 +9632,7 @@ out_put_dev:
  *
  *	Set or clear a bpf program for a device
  */
-int dev_change_xdp_fd(struct net_device *dev, struct netlink_ext_ack *extack,
-		      int fd, int expected_fd, u32 flags)
+int dev_change_xdp_fd(struct net_device* dev, struct netlink_ext_ack* extack, int fd, int expected_fd, u32 flags)
 {
 	enum bpf_xdp_mode mode = dev_xdp_mode(dev, flags);
 	struct bpf_prog *new_prog = NULL, *old_prog = NULL;
@@ -9733,17 +9640,18 @@ int dev_change_xdp_fd(struct net_device *dev, struct netlink_ext_ack *extack,
 
 	ASSERT_RTNL();
 
-	if (fd >= 0) {
-		new_prog = bpf_prog_get_type_dev(fd, BPF_PROG_TYPE_XDP,
-						 mode != XDP_MODE_SKB);
+	if (fd >= 0)
+	{
+		new_prog = bpf_prog_get_type_dev(fd, BPF_PROG_TYPE_XDP, mode != XDP_MODE_SKB);
 		if (IS_ERR(new_prog))
 			return PTR_ERR(new_prog);
 	}
 
-	if (expected_fd >= 0) {
-		old_prog = bpf_prog_get_type_dev(expected_fd, BPF_PROG_TYPE_XDP,
-						 mode != XDP_MODE_SKB);
-		if (IS_ERR(old_prog)) {
+	if (expected_fd >= 0)
+	{
+		old_prog = bpf_prog_get_type_dev(expected_fd, BPF_PROG_TYPE_XDP, mode != XDP_MODE_SKB);
+		if (IS_ERR(old_prog))
+		{
 			err = PTR_ERR(old_prog);
 			old_prog = NULL;
 			goto err_out;
@@ -9768,11 +9676,12 @@ err_out:
  *	number.  The caller must hold the rtnl semaphore or the
  *	dev_base_lock to be sure it remains unique.
  */
-static int dev_new_index(struct net *net)
+static int dev_new_index(struct net* net)
 {
 	int ifindex = net->ifindex;
 
-	for (;;) {
+	for (;;)
+	{
 		if (++ifindex <= 0)
 			ifindex = 1;
 		if (!__dev_get_by_index(net, ifindex))
@@ -9784,25 +9693,24 @@ static int dev_new_index(struct net *net)
 static LIST_HEAD(net_todo_list);
 DECLARE_WAIT_QUEUE_HEAD(netdev_unregistering_wq);
 
-static void net_set_todo(struct net_device *dev)
+static void net_set_todo(struct net_device* dev)
 {
 	list_add_tail(&dev->todo_list, &net_todo_list);
 	dev_net(dev)->dev_unreg_count++;
 }
 
-static netdev_features_t netdev_sync_upper_features(struct net_device *lower,
-	struct net_device *upper, netdev_features_t features)
+static netdev_features_t netdev_sync_upper_features(struct net_device* lower, struct net_device* upper, netdev_features_t features)
 {
 	netdev_features_t upper_disables = NETIF_F_UPPER_DISABLES;
 	netdev_features_t feature;
 	int feature_bit;
 
-	for_each_netdev_feature(upper_disables, feature_bit) {
+	for_each_netdev_feature(upper_disables, feature_bit)
+	{
 		feature = __NETIF_F_BIT(feature_bit);
-		if (!(upper->wanted_features & feature)
-		    && (features & feature)) {
-			netdev_dbg(lower, "Dropping feature %pNF, upper dev %s has it off.\n",
-				   &feature, upper->name);
+		if (!(upper->wanted_features & feature) && (features & feature))
+		{
+			netdev_dbg(lower, "Dropping feature %pNF, upper dev %s has it off.\n", &feature, upper->name);
 			features &= ~feature;
 		}
 	}
@@ -9810,55 +9718,54 @@ static netdev_features_t netdev_sync_upper_features(struct net_device *lower,
 	return features;
 }
 
-static void netdev_sync_lower_features(struct net_device *upper,
-	struct net_device *lower, netdev_features_t features)
+static void netdev_sync_lower_features(struct net_device* upper, struct net_device* lower, netdev_features_t features)
 {
 	netdev_features_t upper_disables = NETIF_F_UPPER_DISABLES;
 	netdev_features_t feature;
 	int feature_bit;
 
-	for_each_netdev_feature(upper_disables, feature_bit) {
+	for_each_netdev_feature(upper_disables, feature_bit)
+	{
 		feature = __NETIF_F_BIT(feature_bit);
-		if (!(features & feature) && (lower->features & feature)) {
-			netdev_dbg(upper, "Disabling feature %pNF on lower dev %s.\n",
-				   &feature, lower->name);
+		if (!(features & feature) && (lower->features & feature))
+		{
+			netdev_dbg(upper, "Disabling feature %pNF on lower dev %s.\n", &feature, lower->name);
 			lower->wanted_features &= ~feature;
 			__netdev_update_features(lower);
 
 			if (unlikely(lower->features & feature))
-				netdev_WARN(upper, "failed to disable %pNF on %s!\n",
-					    &feature, lower->name);
+				netdev_WARN(upper, "failed to disable %pNF on %s!\n", &feature, lower->name);
 			else
 				netdev_features_change(lower);
 		}
 	}
 }
 
-static netdev_features_t netdev_fix_features(struct net_device *dev,
-	netdev_features_t features)
+static netdev_features_t netdev_fix_features(struct net_device* dev, netdev_features_t features)
 {
 	/* Fix illegal checksum combinations */
-	if ((features & NETIF_F_HW_CSUM) &&
-	    (features & (NETIF_F_IP_CSUM|NETIF_F_IPV6_CSUM))) {
+	if ((features & NETIF_F_HW_CSUM) && (features & (NETIF_F_IP_CSUM | NETIF_F_IPV6_CSUM)))
+	{
 		netdev_warn(dev, "mixed HW and IP checksum settings.\n");
-		features &= ~(NETIF_F_IP_CSUM|NETIF_F_IPV6_CSUM);
+		features &= ~(NETIF_F_IP_CSUM | NETIF_F_IPV6_CSUM);
 	}
 
 	/* TSO requires that SG is present as well. */
-	if ((features & NETIF_F_ALL_TSO) && !(features & NETIF_F_SG)) {
+	if ((features & NETIF_F_ALL_TSO) && !(features & NETIF_F_SG))
+	{
 		netdev_dbg(dev, "Dropping TSO features since no SG feature.\n");
 		features &= ~NETIF_F_ALL_TSO;
 	}
 
-	if ((features & NETIF_F_TSO) && !(features & NETIF_F_HW_CSUM) &&
-					!(features & NETIF_F_IP_CSUM)) {
+	if ((features & NETIF_F_TSO) && !(features & NETIF_F_HW_CSUM) && !(features & NETIF_F_IP_CSUM))
+	{
 		netdev_dbg(dev, "Dropping TSO features since no CSUM feature.\n");
 		features &= ~NETIF_F_TSO;
 		features &= ~NETIF_F_TSO_ECN;
 	}
 
-	if ((features & NETIF_F_TSO6) && !(features & NETIF_F_HW_CSUM) &&
-					 !(features & NETIF_F_IPV6_CSUM)) {
+	if ((features & NETIF_F_TSO6) && !(features & NETIF_F_HW_CSUM) && !(features & NETIF_F_IPV6_CSUM))
+	{
 		netdev_dbg(dev, "Dropping TSO6 features since no CSUM feature.\n");
 		features &= ~NETIF_F_TSO6;
 	}
@@ -9872,56 +9779,63 @@ static netdev_features_t netdev_fix_features(struct net_device *dev,
 		features &= ~NETIF_F_TSO_ECN;
 
 	/* Software GSO depends on SG. */
-	if ((features & NETIF_F_GSO) && !(features & NETIF_F_SG)) {
+	if ((features & NETIF_F_GSO) && !(features & NETIF_F_SG))
+	{
 		netdev_dbg(dev, "Dropping NETIF_F_GSO since no SG feature.\n");
 		features &= ~NETIF_F_GSO;
 	}
 
 	/* GSO partial features require GSO partial be set */
-	if ((features & dev->gso_partial_features) &&
-	    !(features & NETIF_F_GSO_PARTIAL)) {
-		netdev_dbg(dev,
-			   "Dropping partially supported GSO features since no GSO partial.\n");
+	if ((features & dev->gso_partial_features) && !(features & NETIF_F_GSO_PARTIAL))
+	{
+		netdev_dbg(dev, "Dropping partially supported GSO features since no GSO partial.\n");
 		features &= ~dev->gso_partial_features;
 	}
 
-	if (!(features & NETIF_F_RXCSUM)) {
+	if (!(features & NETIF_F_RXCSUM))
+	{
 		/* NETIF_F_GRO_HW implies doing RXCSUM since every packet
 		 * successfully merged by hardware must also have the
 		 * checksum verified by hardware.  If the user does not
 		 * want to enable RXCSUM, logically, we should disable GRO_HW.
 		 */
-		if (features & NETIF_F_GRO_HW) {
+		if (features & NETIF_F_GRO_HW)
+		{
 			netdev_dbg(dev, "Dropping NETIF_F_GRO_HW since no RXCSUM feature.\n");
 			features &= ~NETIF_F_GRO_HW;
 		}
 	}
 
 	/* LRO/HW-GRO features cannot be combined with RX-FCS */
-	if (features & NETIF_F_RXFCS) {
-		if (features & NETIF_F_LRO) {
+	if (features & NETIF_F_RXFCS)
+	{
+		if (features & NETIF_F_LRO)
+		{
 			netdev_dbg(dev, "Dropping LRO feature since RX-FCS is requested.\n");
 			features &= ~NETIF_F_LRO;
 		}
 
-		if (features & NETIF_F_GRO_HW) {
+		if (features & NETIF_F_GRO_HW)
+		{
 			netdev_dbg(dev, "Dropping HW-GRO feature since RX-FCS is requested.\n");
 			features &= ~NETIF_F_GRO_HW;
 		}
 	}
 
-	if (features & NETIF_F_HW_TLS_TX) {
-		bool ip_csum = (features & (NETIF_F_IP_CSUM | NETIF_F_IPV6_CSUM)) ==
-			(NETIF_F_IP_CSUM | NETIF_F_IPV6_CSUM);
+	if (features & NETIF_F_HW_TLS_TX)
+	{
+		bool ip_csum = (features & (NETIF_F_IP_CSUM | NETIF_F_IPV6_CSUM)) == (NETIF_F_IP_CSUM | NETIF_F_IPV6_CSUM);
 		bool hw_csum = features & NETIF_F_HW_CSUM;
 
-		if (!ip_csum && !hw_csum) {
+		if (!ip_csum && !hw_csum)
+		{
 			netdev_dbg(dev, "Dropping TLS TX HW offload feature since no CSUM feature.\n");
 			features &= ~NETIF_F_HW_TLS_TX;
 		}
 	}
 
-	if ((features & NETIF_F_HW_TLS_RX) && !(features & NETIF_F_RXCSUM)) {
+	if ((features & NETIF_F_HW_TLS_RX) && !(features & NETIF_F_RXCSUM))
+	{
 		netdev_dbg(dev, "Dropping TLS RX HW offload feature since no RXCSUM feature.\n");
 		features &= ~NETIF_F_HW_TLS_RX;
 	}
@@ -9929,11 +9843,11 @@ static netdev_features_t netdev_fix_features(struct net_device *dev,
 	return features;
 }
 
-int __netdev_update_features(struct net_device *dev)
+int __netdev_update_features(struct net_device* dev)
 {
 	struct net_device *upper, *lower;
 	netdev_features_t features;
-	struct list_head *iter;
+	struct list_head* iter;
 	int err = -1;
 
 	ASSERT_RTNL();
@@ -9947,24 +9861,21 @@ int __netdev_update_features(struct net_device *dev)
 	features = netdev_fix_features(dev, features);
 
 	/* some features can't be enabled if they're off on an upper device */
-	netdev_for_each_upper_dev_rcu(dev, upper, iter)
-		features = netdev_sync_upper_features(dev, upper, features);
+	netdev_for_each_upper_dev_rcu(dev, upper, iter) features = netdev_sync_upper_features(dev, upper, features);
 
 	if (dev->features == features)
 		goto sync_lower;
 
-	netdev_dbg(dev, "Features changed: %pNF -> %pNF\n",
-		&dev->features, &features);
+	netdev_dbg(dev, "Features changed: %pNF -> %pNF\n", &dev->features, &features);
 
 	if (dev->netdev_ops->ndo_set_features)
 		err = dev->netdev_ops->ndo_set_features(dev, features);
 	else
 		err = 0;
 
-	if (unlikely(err < 0)) {
-		netdev_err(dev,
-			"set_features() failed (%d); wanted %pNF, left %pNF\n",
-			err, &features, &dev->features);
+	if (unlikely(err < 0))
+	{
+		netdev_err(dev, "set_features() failed (%d); wanted %pNF, left %pNF\n", err, &features, &dev->features);
 		/* return non-0 since some features might have changed and
 		 * it's better to fire a spurious notification than miss it
 		 */
@@ -9975,13 +9886,14 @@ sync_lower:
 	/* some features must be disabled on lower devices when disabled
 	 * on an upper device (think: bonding master or bridge)
 	 */
-	netdev_for_each_lower_dev(dev, lower, iter)
-		netdev_sync_lower_features(dev, lower, features);
+	netdev_for_each_lower_dev(dev, lower, iter) netdev_sync_lower_features(dev, lower, features);
 
-	if (!err) {
+	if (!err)
+	{
 		netdev_features_t diff = features ^ dev->features;
 
-		if (diff & NETIF_F_RX_UDP_TUNNEL_PORT) {
+		if (diff & NETIF_F_RX_UDP_TUNNEL_PORT)
+		{
 			/* udp_tunnel_{get,drop}_rx_info both need
 			 * NETIF_F_RX_UDP_TUNNEL_PORT enabled on the
 			 * device, or they won't do anything.
@@ -9989,28 +9901,39 @@ sync_lower:
 			 * *before* calling udp_tunnel_get_rx_info,
 			 * but *after* calling udp_tunnel_drop_rx_info.
 			 */
-			if (features & NETIF_F_RX_UDP_TUNNEL_PORT) {
+			if (features & NETIF_F_RX_UDP_TUNNEL_PORT)
+			{
 				dev->features = features;
 				udp_tunnel_get_rx_info(dev);
-			} else {
+			}
+			else
+			{
 				udp_tunnel_drop_rx_info(dev);
 			}
 		}
 
-		if (diff & NETIF_F_HW_VLAN_CTAG_FILTER) {
-			if (features & NETIF_F_HW_VLAN_CTAG_FILTER) {
+		if (diff & NETIF_F_HW_VLAN_CTAG_FILTER)
+		{
+			if (features & NETIF_F_HW_VLAN_CTAG_FILTER)
+			{
 				dev->features = features;
 				err |= vlan_get_rx_ctag_filter_info(dev);
-			} else {
+			}
+			else
+			{
 				vlan_drop_rx_ctag_filter_info(dev);
 			}
 		}
 
-		if (diff & NETIF_F_HW_VLAN_STAG_FILTER) {
-			if (features & NETIF_F_HW_VLAN_STAG_FILTER) {
+		if (diff & NETIF_F_HW_VLAN_STAG_FILTER)
+		{
+			if (features & NETIF_F_HW_VLAN_STAG_FILTER)
+			{
 				dev->features = features;
 				err |= vlan_get_rx_stag_filter_info(dev);
-			} else {
+			}
+			else
+			{
 				vlan_drop_rx_stag_filter_info(dev);
 			}
 		}
@@ -10029,7 +9952,7 @@ sync_lower:
  *	has changed. Should be called after driver or hardware dependent
  *	conditions might have changed that influence the features.
  */
-void netdev_update_features(struct net_device *dev)
+void netdev_update_features(struct net_device* dev)
 {
 	if (__netdev_update_features(dev))
 		netdev_features_change(dev);
@@ -10046,7 +9969,7 @@ EXPORT_SYMBOL(netdev_update_features);
  *	have changed to allow the changes to be propagated to stacked
  *	VLAN devices.
  */
-void netdev_change_features(struct net_device *dev)
+void netdev_change_features(struct net_device* dev)
 {
 	__netdev_update_features(dev);
 	netdev_features_change(dev);
@@ -10062,8 +9985,7 @@ EXPORT_SYMBOL(netdev_change_features);
  *	called when a stacking relationship exists between the root
  *	device and the device(a leaf device).
  */
-void netif_stacked_transfer_operstate(const struct net_device *rootdev,
-					struct net_device *dev)
+void netif_stacked_transfer_operstate(const struct net_device* rootdev, struct net_device* dev)
 {
 	if (rootdev->operstate == IF_OPER_DORMANT)
 		netif_dormant_on(dev);
@@ -10082,10 +10004,10 @@ void netif_stacked_transfer_operstate(const struct net_device *rootdev,
 }
 EXPORT_SYMBOL(netif_stacked_transfer_operstate);
 
-static int netif_alloc_rx_queues(struct net_device *dev)
+static int netif_alloc_rx_queues(struct net_device* dev)
 {
 	unsigned int i, count = dev->num_rx_queues;
-	struct netdev_rx_queue *rx;
+	struct netdev_rx_queue* rx;
 	size_t sz = count * sizeof(*rx);
 	int err = 0;
 
@@ -10097,7 +10019,8 @@ static int netif_alloc_rx_queues(struct net_device *dev)
 
 	dev->_rx = rx;
 
-	for (i = 0; i < count; i++) {
+	for (i = 0; i < count; i++)
+	{
 		rx[i].dev = dev;
 
 		/* XDP RX-queue setup */
@@ -10116,7 +10039,7 @@ err_rxq_info:
 	return err;
 }
 
-static void netif_free_rx_queues(struct net_device *dev)
+static void netif_free_rx_queues(struct net_device* dev)
 {
 	unsigned int i, count = dev->num_rx_queues;
 
@@ -10130,8 +10053,7 @@ static void netif_free_rx_queues(struct net_device *dev)
 	kvfree(dev->_rx);
 }
 
-static void netdev_init_one_queue(struct net_device *dev,
-				  struct netdev_queue *queue, void *_unused)
+static void netdev_init_one_queue(struct net_device* dev, struct netdev_queue* queue, void* _unused)
 {
 	/* Initialize queue lock */
 	spin_lock_init(&queue->_xmit_lock);
@@ -10144,15 +10066,15 @@ static void netdev_init_one_queue(struct net_device *dev,
 #endif
 }
 
-static void netif_free_tx_queues(struct net_device *dev)
+static void netif_free_tx_queues(struct net_device* dev)
 {
 	kvfree(dev->_tx);
 }
 
-static int netif_alloc_netdev_queues(struct net_device *dev)
+static int netif_alloc_netdev_queues(struct net_device* dev)
 {
 	unsigned int count = dev->num_tx_queues;
-	struct netdev_queue *tx;
+	struct netdev_queue* tx;
 	size_t sz = count * sizeof(*tx);
 
 	if (count < 1 || count > 0xffff)
@@ -10170,12 +10092,13 @@ static int netif_alloc_netdev_queues(struct net_device *dev)
 	return 0;
 }
 
-void netif_tx_stop_all_queues(struct net_device *dev)
+void netif_tx_stop_all_queues(struct net_device* dev)
 {
 	unsigned int i;
 
-	for (i = 0; i < dev->num_tx_queues; i++) {
-		struct netdev_queue *txq = netdev_get_tx_queue(dev, i);
+	for (i = 0; i < dev->num_tx_queues; i++)
+	{
+		struct netdev_queue* txq = netdev_get_tx_queue(dev, i);
 
 		netif_tx_stop_queue(txq);
 	}
@@ -10199,13 +10122,12 @@ EXPORT_SYMBOL(netif_tx_stop_all_queues);
  *	will not get the same name.
  */
 
-int register_netdevice(struct net_device *dev)
+int register_netdevice(struct net_device* dev)
 {
 	int ret;
-	struct net *net = dev_net(dev);
+	struct net* net = dev_net(dev);
 
-	BUILD_BUG_ON(sizeof(netdev_features_t) * BITS_PER_BYTE <
-		     NETDEV_FEATURE_COUNT);
+	BUILD_BUG_ON(sizeof(netdev_features_t) * BITS_PER_BYTE < NETDEV_FEATURE_COUNT);
 	BUG_ON(dev_boot_phase);
 	ASSERT_RTNL();
 
@@ -10232,19 +10154,19 @@ int register_netdevice(struct net_device *dev)
 		goto out;
 
 	/* Init, if this function is available */
-	if (dev->netdev_ops->ndo_init) {
+	if (dev->netdev_ops->ndo_init)
+	{
 		ret = dev->netdev_ops->ndo_init(dev);
-		if (ret) {
+		if (ret)
+		{
 			if (ret > 0)
 				ret = -EIO;
 			goto err_free_name;
 		}
 	}
 
-	if (((dev->hw_features | dev->features) &
-	     NETIF_F_HW_VLAN_CTAG_FILTER) &&
-	    (!dev->netdev_ops->ndo_vlan_rx_add_vid ||
-	     !dev->netdev_ops->ndo_vlan_rx_kill_vid)) {
+	if (((dev->hw_features | dev->features) & NETIF_F_HW_VLAN_CTAG_FILTER) && (!dev->netdev_ops->ndo_vlan_rx_add_vid || !dev->netdev_ops->ndo_vlan_rx_kill_vid))
+	{
 		netdev_WARN(dev, "Buggy VLAN acceleration in driver!\n");
 		ret = -EINVAL;
 		goto err_uninit;
@@ -10262,7 +10184,8 @@ int register_netdevice(struct net_device *dev)
 	dev->hw_features |= (NETIF_F_SOFT_FEATURES | NETIF_F_SOFT_FEATURES_OFF);
 	dev->features |= NETIF_F_SOFT_FEATURES;
 
-	if (dev->udp_tunnel_nic_info) {
+	if (dev->udp_tunnel_nic_info)
+	{
 		dev->features |= NETIF_F_RX_UDP_TUNNEL_PORT;
 		dev->hw_features |= NETIF_F_RX_UDP_TUNNEL_PORT;
 	}
@@ -10304,7 +10227,8 @@ int register_netdevice(struct net_device *dev)
 		goto err_uninit;
 
 	ret = netdev_register_kobject(dev);
-	if (ret) {
+	if (ret)
+	{
 		dev->reg_state = NETREG_UNREGISTERED;
 		goto err_uninit;
 	}
@@ -10336,7 +10260,8 @@ int register_netdevice(struct net_device *dev)
 	/* Notify protocols, that a new device appeared. */
 	ret = call_netdevice_notifiers(NETDEV_REGISTER, dev);
 	ret = notifier_to_errno(ret);
-	if (ret) {
+	if (ret)
+	{
 		/* Expect explicit free_netdev() on failure */
 		dev->needs_free_netdev = false;
 		unregister_netdevice_queue(dev, NULL);
@@ -10346,8 +10271,7 @@ int register_netdevice(struct net_device *dev)
 	 *	Prevent userspace races by waiting until the network
 	 *	device is fully setup before sending notifications.
 	 */
-	if (!dev->rtnl_link_ops ||
-	    dev->rtnl_link_state == RTNL_LINK_INITIALIZED)
+	if (!dev->rtnl_link_ops || dev->rtnl_link_state == RTNL_LINK_INITIALIZED)
 		rtmsg_ifinfo(RTM_NEWLINK, dev, ~0U, GFP_KERNEL);
 
 out:
@@ -10374,7 +10298,7 @@ EXPORT_SYMBOL(register_netdevice);
  *	that need to tie several hardware interfaces to a single NAPI
  *	poll scheduler due to HW limitations.
  */
-int init_dummy_netdev(struct net_device *dev)
+int init_dummy_netdev(struct net_device* dev)
 {
 	/* Clear everything. Note we don't initialize spinlocks
 	 * are they aren't supposed to be taken by any of the
@@ -10407,7 +10331,6 @@ int init_dummy_netdev(struct net_device *dev)
 }
 EXPORT_SYMBOL_GPL(init_dummy_netdev);
 
-
 /**
  *	register_netdev	- register a network device
  *	@dev: device to register
@@ -10421,7 +10344,7 @@ EXPORT_SYMBOL_GPL(init_dummy_netdev);
  *	and expands the device name if you passed a format string to
  *	alloc_netdev.
  */
-int register_netdev(struct net_device *dev)
+int register_netdev(struct net_device* dev)
 {
 	int err;
 
@@ -10433,13 +10356,12 @@ int register_netdev(struct net_device *dev)
 }
 EXPORT_SYMBOL(register_netdev);
 
-int netdev_refcnt_read(const struct net_device *dev)
+int netdev_refcnt_read(const struct net_device* dev)
 {
 #ifdef CONFIG_PCPU_DEV_REFCNT
 	int i, refcnt = 0;
 
-	for_each_possible_cpu(i)
-		refcnt += *per_cpu_ptr(dev->pcpu_refcnt, i);
+	for_each_possible_cpu(i) refcnt += *per_cpu_ptr(dev->pcpu_refcnt, i);
 	return refcnt;
 #else
 	return refcount_read(&dev->dev_refcnt);
@@ -10463,7 +10385,7 @@ int netdev_unregister_timeout_secs __read_mostly = 10;
  * We can get stuck here if buggy protocols don't correctly
  * call dev_put.
  */
-static void netdev_wait_allrefs(struct net_device *dev)
+static void netdev_wait_allrefs(struct net_device* dev)
 {
 	unsigned long rebroadcast_time, warning_time;
 	int wait = 0, refcnt;
@@ -10473,8 +10395,10 @@ static void netdev_wait_allrefs(struct net_device *dev)
 	rebroadcast_time = warning_time = jiffies;
 	refcnt = netdev_refcnt_read(dev);
 
-	while (refcnt != 1) {
-		if (time_after(jiffies, rebroadcast_time + 1 * HZ)) {
+	while (refcnt != 1)
+	{
+		if (time_after(jiffies, rebroadcast_time + 1 * HZ))
+		{
 			rtnl_lock();
 
 			/* Rebroadcast unregister notification */
@@ -10484,8 +10408,8 @@ static void netdev_wait_allrefs(struct net_device *dev)
 			rcu_barrier();
 			rtnl_lock();
 
-			if (test_bit(__LINK_STATE_LINKWATCH_PENDING,
-				     &dev->state)) {
+			if (test_bit(__LINK_STATE_LINKWATCH_PENDING, &dev->state))
+			{
 				/* We must not have linkwatch events
 				 * pending on unregister. If this
 				 * happens, we simply run the queue
@@ -10500,21 +10424,22 @@ static void netdev_wait_allrefs(struct net_device *dev)
 			rebroadcast_time = jiffies;
 		}
 
-		if (!wait) {
+		if (!wait)
+		{
 			rcu_barrier();
 			wait = WAIT_REFS_MIN_MSECS;
-		} else {
+		}
+		else
+		{
 			msleep(wait);
 			wait = min(wait << 1, WAIT_REFS_MAX_MSECS);
 		}
 
 		refcnt = netdev_refcnt_read(dev);
 
-		if (refcnt != 1 &&
-		    time_after(jiffies, warning_time +
-			       netdev_unregister_timeout_secs * HZ)) {
-			pr_emerg("unregister_netdevice: waiting for %s to become free. Usage count = %d\n",
-				 dev->name, refcnt);
+		if (refcnt != 1 && time_after(jiffies, warning_time + netdev_unregister_timeout_secs * HZ))
+		{
+			pr_emerg("unregister_netdevice: waiting for %s to become free. Usage count = %d\n", dev->name, refcnt);
 			warning_time = jiffies;
 		}
 	}
@@ -10552,10 +10477,9 @@ void netdev_run_todo(void)
 
 	list_replace_init(&net_unlink_list, &unlink_list);
 
-	while (!list_empty(&unlink_list)) {
-		struct net_device *dev = list_first_entry(&unlink_list,
-							  struct net_device,
-							  unlink_list);
+	while (!list_empty(&unlink_list))
+	{
+		struct net_device* dev = list_first_entry(&unlink_list, struct net_device, unlink_list);
 		list_del_init(&dev->unlink_list);
 		dev->nested_level = dev->lower_level - 1;
 	}
@@ -10566,19 +10490,18 @@ void netdev_run_todo(void)
 
 	__rtnl_unlock();
 
-
 	/* Wait for rcu callbacks to finish before next phase */
 	if (!list_empty(&list))
 		rcu_barrier();
 
-	while (!list_empty(&list)) {
-		struct net_device *dev
-			= list_first_entry(&list, struct net_device, todo_list);
+	while (!list_empty(&list))
+	{
+		struct net_device* dev = list_first_entry(&list, struct net_device, todo_list);
 		list_del(&dev->todo_list);
 
-		if (unlikely(dev->reg_state != NETREG_UNREGISTERING)) {
-			pr_err("network todo '%s' but state %d\n",
-			       dev->name, dev->reg_state);
+		if (unlikely(dev->reg_state != NETREG_UNREGISTERING))
+		{
+			pr_err("network todo '%s' but state %d\n", dev->name, dev->reg_state);
 			dump_stack();
 			continue;
 		}
@@ -10617,26 +10540,23 @@ void netdev_run_todo(void)
  * the type differing, but rtnl_link_stats64 may have additional fields
  * at the end for newer counters.
  */
-void netdev_stats_to_stats64(struct rtnl_link_stats64 *stats64,
-			     const struct net_device_stats *netdev_stats)
+void netdev_stats_to_stats64(struct rtnl_link_stats64* stats64, const struct net_device_stats* netdev_stats)
 {
 #if BITS_PER_LONG == 64
 	BUILD_BUG_ON(sizeof(*stats64) < sizeof(*netdev_stats));
 	memcpy(stats64, netdev_stats, sizeof(*netdev_stats));
 	/* zero out counters that only exist in rtnl_link_stats64 */
-	memset((char *)stats64 + sizeof(*netdev_stats), 0,
-	       sizeof(*stats64) - sizeof(*netdev_stats));
+	memset((char*)stats64 + sizeof(*netdev_stats), 0, sizeof(*stats64) - sizeof(*netdev_stats));
 #else
 	size_t i, n = sizeof(*netdev_stats) / sizeof(unsigned long);
-	const unsigned long *src = (const unsigned long *)netdev_stats;
-	u64 *dst = (u64 *)stats64;
+	const unsigned long* src = (const unsigned long*)netdev_stats;
+	u64* dst = (u64*)stats64;
 
 	BUILD_BUG_ON(n > sizeof(*stats64) / sizeof(u64));
 	for (i = 0; i < n; i++)
 		dst[i] = src[i];
 	/* zero out counters that only exist in rtnl_link_stats64 */
-	memset((char *)stats64 + n * sizeof(u64), 0,
-	       sizeof(*stats64) - n * sizeof(u64));
+	memset((char*)stats64 + n * sizeof(u64), 0, sizeof(*stats64) - n * sizeof(u64));
 #endif
 }
 EXPORT_SYMBOL(netdev_stats_to_stats64);
@@ -10651,17 +10571,21 @@ EXPORT_SYMBOL(netdev_stats_to_stats64);
  *	dev->netdev_ops->get_stats64 or dev->netdev_ops->get_stats;
  *	otherwise the internal statistics structure is used.
  */
-struct rtnl_link_stats64 *dev_get_stats(struct net_device *dev,
-					struct rtnl_link_stats64 *storage)
+struct rtnl_link_stats64* dev_get_stats(struct net_device* dev, struct rtnl_link_stats64* storage)
 {
-	const struct net_device_ops *ops = dev->netdev_ops;
+	const struct net_device_ops* ops = dev->netdev_ops;
 
-	if (ops->ndo_get_stats64) {
+	if (ops->ndo_get_stats64)
+	{
 		memset(storage, 0, sizeof(*storage));
 		ops->ndo_get_stats64(dev, storage);
-	} else if (ops->ndo_get_stats) {
+	}
+	else if (ops->ndo_get_stats)
+	{
 		netdev_stats_to_stats64(storage, ops->ndo_get_stats(dev));
-	} else {
+	}
+	else
+	{
 		netdev_stats_to_stats64(storage, &dev->stats);
 	}
 	storage->rx_dropped += (unsigned long)atomic_long_read(&dev->rx_dropped);
@@ -10678,29 +10602,30 @@ EXPORT_SYMBOL(dev_get_stats);
  *
  *	Read per-cpu network statistics and populate the related fields in @s.
  */
-void dev_fetch_sw_netstats(struct rtnl_link_stats64 *s,
-			   const struct pcpu_sw_netstats __percpu *netstats)
+void dev_fetch_sw_netstats(struct rtnl_link_stats64* s, const struct pcpu_sw_netstats __percpu* netstats)
 {
 	int cpu;
 
-	for_each_possible_cpu(cpu) {
-		const struct pcpu_sw_netstats *stats;
+	for_each_possible_cpu(cpu)
+	{
+		const struct pcpu_sw_netstats* stats;
 		struct pcpu_sw_netstats tmp;
 		unsigned int start;
 
 		stats = per_cpu_ptr(netstats, cpu);
-		do {
+		do
+		{
 			start = u64_stats_fetch_begin_irq(&stats->syncp);
 			tmp.rx_packets = stats->rx_packets;
-			tmp.rx_bytes   = stats->rx_bytes;
+			tmp.rx_bytes = stats->rx_bytes;
 			tmp.tx_packets = stats->tx_packets;
-			tmp.tx_bytes   = stats->tx_bytes;
+			tmp.tx_bytes = stats->tx_bytes;
 		} while (u64_stats_fetch_retry_irq(&stats->syncp, start));
 
 		s->rx_packets += tmp.rx_packets;
-		s->rx_bytes   += tmp.rx_bytes;
+		s->rx_bytes += tmp.rx_bytes;
 		s->tx_packets += tmp.tx_packets;
-		s->tx_bytes   += tmp.tx_bytes;
+		s->tx_bytes += tmp.tx_bytes;
 	}
 }
 EXPORT_SYMBOL_GPL(dev_fetch_sw_netstats);
@@ -10713,16 +10638,16 @@ EXPORT_SYMBOL_GPL(dev_fetch_sw_netstats);
  *	Populate @s from dev->stats and dev->tstats. Can be used as
  *	ndo_get_stats64() callback.
  */
-void dev_get_tstats64(struct net_device *dev, struct rtnl_link_stats64 *s)
+void dev_get_tstats64(struct net_device* dev, struct rtnl_link_stats64* s)
 {
 	netdev_stats_to_stats64(s, &dev->stats);
 	dev_fetch_sw_netstats(s, dev->tstats);
 }
 EXPORT_SYMBOL_GPL(dev_get_tstats64);
 
-struct netdev_queue *dev_ingress_queue_create(struct net_device *dev)
+struct netdev_queue* dev_ingress_queue_create(struct net_device* dev)
 {
-	struct netdev_queue *queue = dev_ingress_queue(dev);
+	struct netdev_queue* queue = dev_ingress_queue(dev);
 
 #ifdef CONFIG_NET_CLS_ACT
 	if (queue)
@@ -10740,17 +10665,16 @@ struct netdev_queue *dev_ingress_queue_create(struct net_device *dev)
 
 static const struct ethtool_ops default_ethtool_ops;
 
-void netdev_set_default_ethtool_ops(struct net_device *dev,
-				    const struct ethtool_ops *ops)
+void netdev_set_default_ethtool_ops(struct net_device* dev, const struct ethtool_ops* ops)
 {
 	if (dev->ethtool_ops == &default_ethtool_ops)
 		dev->ethtool_ops = ops;
 }
 EXPORT_SYMBOL_GPL(netdev_set_default_ethtool_ops);
 
-void netdev_freemem(struct net_device *dev)
+void netdev_freemem(struct net_device* dev)
 {
-	char *addr = (char *)dev - dev->padded;
+	char* addr = (char*)dev - dev->padded;
 
 	kvfree(addr);
 }
@@ -10768,29 +10692,29 @@ void netdev_freemem(struct net_device *dev)
  * and performs basic initialization.  Also allocates subqueue structs
  * for each queue on the device.
  */
-struct net_device *alloc_netdev_mqs(int sizeof_priv, const char *name,
-		unsigned char name_assign_type,
-		void (*setup)(struct net_device *),
-		unsigned int txqs, unsigned int rxqs)
+struct net_device* alloc_netdev_mqs(int sizeof_priv, const char* name, unsigned char name_assign_type, void (*setup)(struct net_device*), unsigned int txqs, unsigned int rxqs)
 {
-	struct net_device *dev;
+	struct net_device* dev;
 	unsigned int alloc_size;
-	struct net_device *p;
+	struct net_device* p;
 
 	BUG_ON(strlen(name) >= sizeof(dev->name));
 
-	if (txqs < 1) {
+	if (txqs < 1)
+	{
 		pr_err("alloc_netdev: Unable to allocate device with zero queues\n");
 		return NULL;
 	}
 
-	if (rxqs < 1) {
+	if (rxqs < 1)
+	{
 		pr_err("alloc_netdev: Unable to allocate device with zero RX queues\n");
 		return NULL;
 	}
 
 	alloc_size = sizeof(struct net_device);
-	if (sizeof_priv) {
+	if (sizeof_priv)
+	{
 		/* ensure 32-byte alignment of private area */
 		alloc_size = ALIGN(alloc_size, NETDEV_ALIGN);
 		alloc_size += sizeof_priv;
@@ -10803,7 +10727,7 @@ struct net_device *alloc_netdev_mqs(int sizeof_priv, const char *name,
 		return NULL;
 
 	dev = PTR_ALIGN(p, NETDEV_ALIGN);
-	dev->padded = (char *)dev - (char *)p;
+	dev->padded = (char*)dev - (char*)p;
 
 #ifdef CONFIG_PCPU_DEV_REFCNT
 	dev->pcpu_refcnt = alloc_percpu(int);
@@ -10846,7 +10770,8 @@ struct net_device *alloc_netdev_mqs(int sizeof_priv, const char *name,
 	dev->priv_flags = IFF_XMIT_DST_RELEASE | IFF_XMIT_DST_RELEASE_PERM;
 	setup(dev);
 
-	if (!dev->tx_queue_len) {
+	if (!dev->tx_queue_len)
+	{
 		dev->priv_flags |= IFF_NO_QUEUE;
 		dev->tx_queue_len = DEFAULT_TX_QUEUE_LEN;
 	}
@@ -10894,7 +10819,7 @@ EXPORT_SYMBOL(alloc_netdev_mqs);
  * is the last reference then it will be freed.Must be called in process
  * context.
  */
-void free_netdev(struct net_device *dev)
+void free_netdev(struct net_device* dev)
 {
 	struct napi_struct *p, *n;
 
@@ -10904,7 +10829,8 @@ void free_netdev(struct net_device *dev)
 	 * handling may still be dismantling the device. Handle that case by
 	 * deferring the free.
 	 */
-	if (dev->reg_state == NETREG_UNREGISTERING) {
+	if (dev->reg_state == NETREG_UNREGISTERING)
+	{
 		ASSERT_RTNL();
 		dev->needs_free_netdev = true;
 		return;
@@ -10918,8 +10844,7 @@ void free_netdev(struct net_device *dev)
 	/* Flush device addresses */
 	dev_addr_flush(dev);
 
-	list_for_each_entry_safe(p, n, &dev->napi_list, dev_list)
-		netif_napi_del(p);
+	list_for_each_entry_safe(p, n, &dev->napi_list, dev_list) netif_napi_del(p);
 
 #ifdef CONFIG_PCPU_DEV_REFCNT
 	free_percpu(dev->pcpu_refcnt);
@@ -10929,7 +10854,8 @@ void free_netdev(struct net_device *dev)
 	dev->xdp_bulkq = NULL;
 
 	/*  Compatibility with error handling in drivers */
-	if (dev->reg_state == NETREG_UNINITIALIZED) {
+	if (dev->reg_state == NETREG_UNINITIALIZED)
+	{
 		netdev_freemem(dev);
 		return;
 	}
@@ -10971,13 +10897,16 @@ EXPORT_SYMBOL(synchronize_net);
  *	unregister_netdev() instead of this.
  */
 
-void unregister_netdevice_queue(struct net_device *dev, struct list_head *head)
+void unregister_netdevice_queue(struct net_device* dev, struct list_head* head)
 {
 	ASSERT_RTNL();
 
-	if (head) {
+	if (head)
+	{
 		list_move_tail(&dev->unreg_list, head);
-	} else {
+	}
+	else
+	{
 		LIST_HEAD(single);
 
 		list_add(&dev->unreg_list, &single);
@@ -10993,7 +10922,7 @@ EXPORT_SYMBOL(unregister_netdevice_queue);
  *  Note: As most callers use a stack allocated list_head,
  *  we force a list_del() to make sure stack wont be corrupted later.
  */
-void unregister_netdevice_many(struct list_head *head)
+void unregister_netdevice_many(struct list_head* head)
 {
 	struct net_device *dev, *tmp;
 	LIST_HEAD(close_head);
@@ -11004,14 +10933,15 @@ void unregister_netdevice_many(struct list_head *head)
 	if (list_empty(head))
 		return;
 
-	list_for_each_entry_safe(dev, tmp, head, unreg_list) {
+	list_for_each_entry_safe(dev, tmp, head, unreg_list)
+	{
 		/* Some devices call without registering
 		 * for initialization unwind. Remove those
 		 * devices and proceed with the remaining.
 		 */
-		if (dev->reg_state == NETREG_UNINITIALIZED) {
-			pr_debug("unregister_netdevice: device %s/%p never was registered\n",
-				 dev->name, dev);
+		if (dev->reg_state == NETREG_UNINITIALIZED)
+		{
+			pr_debug("unregister_netdevice: device %s/%p never was registered\n", dev->name, dev);
 
 			WARN_ON(1);
 			list_del(&dev->unreg_list);
@@ -11022,11 +10952,11 @@ void unregister_netdevice_many(struct list_head *head)
 	}
 
 	/* If device is running, close it first. */
-	list_for_each_entry(dev, head, unreg_list)
-		list_add_tail(&dev->close_list, &close_head);
+	list_for_each_entry(dev, head, unreg_list) list_add_tail(&dev->close_list, &close_head);
 	dev_close_many(&close_head, true);
 
-	list_for_each_entry(dev, head, unreg_list) {
+	list_for_each_entry(dev, head, unreg_list)
+	{
 		/* And unlink it from device chain. */
 		unlist_netdevice(dev);
 
@@ -11036,8 +10966,9 @@ void unregister_netdevice_many(struct list_head *head)
 
 	synchronize_net();
 
-	list_for_each_entry(dev, head, unreg_list) {
-		struct sk_buff *skb = NULL;
+	list_for_each_entry(dev, head, unreg_list)
+	{
+		struct sk_buff* skb = NULL;
 
 		/* Shutdown queueing discipline. */
 		dev_shutdown(dev);
@@ -11049,10 +10980,8 @@ void unregister_netdevice_many(struct list_head *head)
 		 */
 		call_netdevice_notifiers(NETDEV_UNREGISTER, dev);
 
-		if (!dev->rtnl_link_ops ||
-		    dev->rtnl_link_state == RTNL_LINK_INITIALIZED)
-			skb = rtmsg_ifinfo_build_skb(RTM_DELLINK, dev, ~0U, 0,
-						     GFP_KERNEL, NULL, 0);
+		if (!dev->rtnl_link_ops || dev->rtnl_link_state == RTNL_LINK_INITIALIZED)
+			skb = rtmsg_ifinfo_build_skb(RTM_DELLINK, dev, ~0U, 0, GFP_KERNEL, NULL, 0);
 
 		/*
 		 *	Flush the unicast and multicast chains
@@ -11083,7 +11012,8 @@ void unregister_netdevice_many(struct list_head *head)
 
 	synchronize_net();
 
-	list_for_each_entry(dev, head, unreg_list) {
+	list_for_each_entry(dev, head, unreg_list)
+	{
 		dev_put(dev);
 		net_set_todo(dev);
 	}
@@ -11103,7 +11033,7 @@ EXPORT_SYMBOL(unregister_netdevice_many);
  *	the rtnl semaphore.  In general you want to use this and not
  *	unregister_netdevice.
  */
-void unregister_netdev(struct net_device *dev)
+void unregister_netdev(struct net_device* dev)
 {
 	rtnl_lock();
 	unregister_netdevice(dev);
@@ -11127,10 +11057,9 @@ EXPORT_SYMBOL(unregister_netdev);
  *	Callers must hold the rtnl semaphore.
  */
 
-int __dev_change_net_namespace(struct net_device *dev, struct net *net,
-			       const char *pat, int new_ifindex)
+int __dev_change_net_namespace(struct net_device* dev, struct net* net, const char* pat, int new_ifindex)
 {
-	struct net *net_old = dev_net(dev);
+	struct net* net_old = dev_net(dev);
 	int err, new_nsid;
 
 	ASSERT_RTNL();
@@ -11153,7 +11082,8 @@ int __dev_change_net_namespace(struct net_device *dev, struct net *net,
 	 * we can use it in the destination network namespace.
 	 */
 	err = -EEXIST;
-	if (__dev_get_by_name(net, dev->name)) {
+	if (__dev_get_by_name(net, dev->name))
+	{
 		/* We get here if we can't use the current device name */
 		if (!pat)
 			goto out;
@@ -11194,15 +11124,15 @@ int __dev_change_net_namespace(struct net_device *dev, struct net *net,
 
 	new_nsid = peernet2id_alloc(dev_net(dev), net, GFP_KERNEL);
 	/* If there is an ifindex conflict assign a new one */
-	if (!new_ifindex) {
+	if (!new_ifindex)
+	{
 		if (__dev_get_by_index(net, dev->ifindex))
 			new_ifindex = dev_new_index(net);
 		else
 			new_ifindex = dev->ifindex;
 	}
 
-	rtmsg_ifinfo_newnet(RTM_DELLINK, dev, ~0U, GFP_KERNEL, &new_nsid,
-			    new_ifindex);
+	rtmsg_ifinfo_newnet(RTM_DELLINK, dev, ~0U, GFP_KERNEL, &new_nsid, new_ifindex);
 
 	/*
 	 *	Flush the unicast and multicast chains
@@ -11256,8 +11186,8 @@ EXPORT_SYMBOL_GPL(__dev_change_net_namespace);
 
 static int dev_cpu_dead(unsigned int oldcpu)
 {
-	struct sk_buff **list_skb;
-	struct sk_buff *skb;
+	struct sk_buff** list_skb;
+	struct sk_buff* skb;
 	unsigned int cpu;
 	struct softnet_data *sd, *oldsd, *remsd = NULL;
 
@@ -11275,7 +11205,8 @@ static int dev_cpu_dead(unsigned int oldcpu)
 	oldsd->completion_queue = NULL;
 
 	/* Append output queue from offline CPU. */
-	if (oldsd->output_queue) {
+	if (oldsd->output_queue)
+	{
 		*sd->output_queue_tailp = oldsd->output_queue;
 		sd->output_queue_tailp = oldsd->output_queue_tailp;
 		oldsd->output_queue = NULL;
@@ -11285,10 +11216,9 @@ static int dev_cpu_dead(unsigned int oldcpu)
 	 * process_backlog() must be called by cpu owning percpu backlog.
 	 * We properly handle process_queue & input_pkt_queue later.
 	 */
-	while (!list_empty(&oldsd->poll_list)) {
-		struct napi_struct *napi = list_first_entry(&oldsd->poll_list,
-							    struct napi_struct,
-							    poll_list);
+	while (!list_empty(&oldsd->poll_list))
+	{
+		struct napi_struct* napi = list_first_entry(&oldsd->poll_list, struct napi_struct, poll_list);
 
 		list_del_init(&napi->poll_list);
 		if (napi->poll == process_backlog)
@@ -11308,11 +11238,13 @@ static int dev_cpu_dead(unsigned int oldcpu)
 	net_rps_send_ipi(remsd);
 
 	/* Process offline CPU's input_pkt_queue */
-	while ((skb = __skb_dequeue(&oldsd->process_queue))) {
+	while ((skb = __skb_dequeue(&oldsd->process_queue)))
+	{
 		netif_rx_ni(skb);
 		input_queue_head_incr(oldsd);
 	}
-	while ((skb = skb_dequeue(&oldsd->input_pkt_queue))) {
+	while ((skb = skb_dequeue(&oldsd->input_pkt_queue)))
+	{
 		netif_rx_ni(skb);
 		input_queue_head_incr(oldsd);
 	}
@@ -11330,8 +11262,7 @@ static int dev_cpu_dead(unsigned int oldcpu)
  *	@one to the master device with current feature set @all.  Will not
  *	enable anything that is off in @mask. Returns the new feature set.
  */
-netdev_features_t netdev_increment_features(netdev_features_t all,
-	netdev_features_t one, netdev_features_t mask)
+netdev_features_t netdev_increment_features(netdev_features_t all, netdev_features_t one, netdev_features_t mask)
 {
 	if (mask & NETIF_F_HW_CSUM)
 		mask |= NETIF_F_CSUM_MASK;
@@ -11348,10 +11279,10 @@ netdev_features_t netdev_increment_features(netdev_features_t all,
 }
 EXPORT_SYMBOL(netdev_increment_features);
 
-static struct hlist_head * __net_init netdev_create_hash(void)
+static struct hlist_head* __net_init netdev_create_hash(void)
 {
 	int i;
-	struct hlist_head *hash;
+	struct hlist_head* hash;
 
 	hash = kmalloc_array(NETDEV_HASHENTRIES, sizeof(*hash), GFP_KERNEL);
 	if (hash != NULL)
@@ -11362,10 +11293,9 @@ static struct hlist_head * __net_init netdev_create_hash(void)
 }
 
 /* Initialize per network namespace state */
-static int __net_init netdev_init(struct net *net)
+static int __net_init netdev_init(struct net* net)
 {
-	BUILD_BUG_ON(GRO_HASH_BUCKETS >
-		     8 * sizeof_field(struct napi_struct, gro_bitmask));
+	BUILD_BUG_ON(GRO_HASH_BUCKETS > 8 * sizeof_field(struct napi_struct, gro_bitmask));
 
 	if (net != &init_net)
 		INIT_LIST_HEAD(&net->dev_base_head);
@@ -11394,11 +11324,11 @@ err_name:
  *
  *	Determine network driver for device.
  */
-const char *netdev_drivername(const struct net_device *dev)
+const char* netdev_drivername(const struct net_device* dev)
 {
-	const struct device_driver *driver;
-	const struct device *parent;
-	const char *empty = "";
+	const struct device_driver* driver;
+	const struct device* parent;
+	const char* empty = "";
 
 	parent = dev->dev.parent;
 	if (!parent)
@@ -11410,27 +11340,23 @@ const char *netdev_drivername(const struct net_device *dev)
 	return empty;
 }
 
-static void __netdev_printk(const char *level, const struct net_device *dev,
-			    struct va_format *vaf)
+static void __netdev_printk(const char* level, const struct net_device* dev, struct va_format* vaf)
 {
-	if (dev && dev->dev.parent) {
-		dev_printk_emit(level[1] - '0',
-				dev->dev.parent,
-				"%s %s %s%s: %pV",
-				dev_driver_string(dev->dev.parent),
-				dev_name(dev->dev.parent),
-				netdev_name(dev), netdev_reg_state(dev),
-				vaf);
-	} else if (dev) {
-		printk("%s%s%s: %pV",
-		       level, netdev_name(dev), netdev_reg_state(dev), vaf);
-	} else {
+	if (dev && dev->dev.parent)
+	{
+		dev_printk_emit(level[1] - '0', dev->dev.parent, "%s %s %s%s: %pV", dev_driver_string(dev->dev.parent), dev_name(dev->dev.parent), netdev_name(dev), netdev_reg_state(dev), vaf);
+	}
+	else if (dev)
+	{
+		printk("%s%s%s: %pV", level, netdev_name(dev), netdev_reg_state(dev), vaf);
+	}
+	else
+	{
 		printk("%s(NULL net_device): %pV", level, vaf);
 	}
 }
 
-void netdev_printk(const char *level, const struct net_device *dev,
-		   const char *format, ...)
+void netdev_printk(const char* level, const struct net_device* dev, const char* format, ...)
 {
 	struct va_format vaf;
 	va_list args;
@@ -11446,22 +11372,22 @@ void netdev_printk(const char *level, const struct net_device *dev,
 }
 EXPORT_SYMBOL(netdev_printk);
 
-#define define_netdev_printk_level(func, level)			\
-void func(const struct net_device *dev, const char *fmt, ...)	\
-{								\
-	struct va_format vaf;					\
-	va_list args;						\
-								\
-	va_start(args, fmt);					\
-								\
-	vaf.fmt = fmt;						\
-	vaf.va = &args;						\
-								\
-	__netdev_printk(level, dev, &vaf);			\
-								\
-	va_end(args);						\
-}								\
-EXPORT_SYMBOL(func);
+#define define_netdev_printk_level(func, level)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                \
+	void func(const struct net_device* dev, const char* fmt, ...)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              \
+	{                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          \
+		struct va_format vaf;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  \
+		va_list args;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          \
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               \
+		va_start(args, fmt);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   \
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               \
+		vaf.fmt = fmt;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         \
+		vaf.va = &args;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        \
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               \
+		__netdev_printk(level, dev, &vaf);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     \
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               \
+		va_end(args);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          \
+	}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          \
+	EXPORT_SYMBOL(func);
 
 define_netdev_printk_level(netdev_emerg, KERN_EMERG);
 define_netdev_printk_level(netdev_alert, KERN_ALERT);
@@ -11471,7 +11397,7 @@ define_netdev_printk_level(netdev_warn, KERN_WARNING);
 define_netdev_printk_level(netdev_notice, KERN_NOTICE);
 define_netdev_printk_level(netdev_info, KERN_INFO);
 
-static void __net_exit netdev_exit(struct net *net)
+static void __net_exit netdev_exit(struct net* net)
 {
 	kfree(net->dev_name_head);
 	kfree(net->dev_index_head);
@@ -11484,7 +11410,7 @@ static struct pernet_operations __net_initdata netdev_net_ops = {
 	.exit = netdev_exit,
 };
 
-static void __net_exit default_device_exit(struct net *net)
+static void __net_exit default_device_exit(struct net* net)
 {
 	struct net_device *dev, *aux;
 	/*
@@ -11492,7 +11418,8 @@ static void __net_exit default_device_exit(struct net *net)
 	 * initial network namespace
 	 */
 	rtnl_lock();
-	for_each_netdev_safe(net, dev, aux) {
+	for_each_netdev_safe(net, dev, aux)
+	{
 		int err;
 		char fb_name[IFNAMSIZ];
 
@@ -11509,30 +11436,33 @@ static void __net_exit default_device_exit(struct net *net)
 		if (__dev_get_by_name(&init_net, fb_name))
 			snprintf(fb_name, IFNAMSIZ, "dev%%d");
 		err = dev_change_net_namespace(dev, &init_net, fb_name);
-		if (err) {
-			pr_emerg("%s: failed to move %s to init_net: %d\n",
-				 __func__, dev->name, err);
+		if (err)
+		{
+			pr_emerg("%s: failed to move %s to init_net: %d\n", __func__, dev->name, err);
 			BUG();
 		}
 	}
 	rtnl_unlock();
 }
 
-static void __net_exit rtnl_lock_unregistering(struct list_head *net_list)
+static void __net_exit rtnl_lock_unregistering(struct list_head* net_list)
 {
 	/* Return with the rtnl_lock held when there are no network
 	 * devices unregistering in any network namespace in net_list.
 	 */
-	struct net *net;
+	struct net* net;
 	bool unregistering;
 	DEFINE_WAIT_FUNC(wait, woken_wake_function);
 
 	add_wait_queue(&netdev_unregistering_wq, &wait);
-	for (;;) {
+	for (;;)
+	{
 		unregistering = false;
 		rtnl_lock();
-		list_for_each_entry(net, net_list, exit_list) {
-			if (net->dev_unreg_count > 0) {
+		list_for_each_entry(net, net_list, exit_list)
+		{
+			if (net->dev_unreg_count > 0)
+			{
 				unregistering = true;
 				break;
 			}
@@ -11546,15 +11476,15 @@ static void __net_exit rtnl_lock_unregistering(struct list_head *net_list)
 	remove_wait_queue(&netdev_unregistering_wq, &wait);
 }
 
-static void __net_exit default_device_exit_batch(struct list_head *net_list)
+static void __net_exit default_device_exit_batch(struct list_head* net_list)
 {
 	/* At exit all network devices most be removed from a network
 	 * namespace.  Do this in the reverse order of registration.
 	 * Do this across as many network namespaces as possible to
 	 * improve batching efficiency.
 	 */
-	struct net_device *dev;
-	struct net *net;
+	struct net_device* dev;
+	struct net* net;
 	LIST_HEAD(dev_kill_list);
 
 	/* To prevent network device cleanup code from dereferencing
@@ -11569,8 +11499,10 @@ static void __net_exit default_device_exit_batch(struct list_head *net_list)
 	 * default_device_exit_batch.
 	 */
 	rtnl_lock_unregistering(net_list);
-	list_for_each_entry(net, net_list, exit_list) {
-		for_each_netdev_reverse(net, dev) {
+	list_for_each_entry(net, net_list, exit_list)
+	{
+		for_each_netdev_reverse(net, dev)
+		{
 			if (dev->rtnl_link_ops && dev->rtnl_link_ops->dellink)
 				dev->rtnl_link_ops->dellink(dev, &dev_kill_list);
 			else
@@ -11622,9 +11554,10 @@ static int __init net_dev_init(void)
 	 *	Initialise the packet receive queues.
 	 */
 
-	for_each_possible_cpu(i) {
-		struct work_struct *flush = per_cpu_ptr(&flush_works, i);
-		struct softnet_data *sd = &per_cpu(softnet_data, i);
+	for_each_possible_cpu(i)
+	{
+		struct work_struct* flush = per_cpu_ptr(&flush_works, i);
+		struct softnet_data* sd = &per_cpu(softnet_data, i);
 
 		INIT_WORK(flush, flush_backlog);
 
@@ -11665,8 +11598,7 @@ static int __init net_dev_init(void)
 	open_softirq(NET_TX_SOFTIRQ, net_tx_action);
 	open_softirq(NET_RX_SOFTIRQ, net_rx_action);
 
-	rc = cpuhp_setup_state_nocalls(CPUHP_NET_DEV_DEAD, "net/dev:dead",
-				       NULL, dev_cpu_dead);
+	rc = cpuhp_setup_state_nocalls(CPUHP_NET_DEV_DEAD, "net/dev:dead", NULL, dev_cpu_dead);
 	WARN_ON(rc < 0);
 	rc = 0;
 out:

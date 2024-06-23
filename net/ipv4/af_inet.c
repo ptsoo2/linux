@@ -63,60 +63,60 @@
 
 #define pr_fmt(fmt) "IPv4: " fmt
 
+#include <linux/capability.h>
 #include <linux/err.h>
 #include <linux/errno.h>
-#include <linux/types.h>
-#include <linux/socket.h>
+#include <linux/fcntl.h>
 #include <linux/in.h>
+#include <linux/init.h>
+#include <linux/interrupt.h>
 #include <linux/kernel.h>
 #include <linux/kmod.h>
-#include <linux/sched.h>
-#include <linux/timer.h>
-#include <linux/string.h>
-#include <linux/sockios.h>
-#include <linux/net.h>
-#include <linux/capability.h>
-#include <linux/fcntl.h>
 #include <linux/mm.h>
-#include <linux/interrupt.h>
-#include <linux/stat.h>
-#include <linux/init.h>
-#include <linux/poll.h>
+#include <linux/net.h>
 #include <linux/netfilter_ipv4.h>
+#include <linux/poll.h>
 #include <linux/random.h>
+#include <linux/sched.h>
 #include <linux/slab.h>
+#include <linux/socket.h>
+#include <linux/sockios.h>
+#include <linux/stat.h>
+#include <linux/string.h>
+#include <linux/timer.h>
+#include <linux/types.h>
 
 #include <linux/uaccess.h>
 
-#include <linux/inet.h>
 #include <linux/igmp.h>
+#include <linux/inet.h>
 #include <linux/inetdevice.h>
 #include <linux/netdevice.h>
-#include <net/checksum.h>
-#include <net/ip.h>
-#include <net/protocol.h>
+#include <linux/skbuff.h>
 #include <net/arp.h>
-#include <net/route.h>
-#include <net/ip_fib.h>
+#include <net/checksum.h>
+#include <net/icmp.h>
+#include <net/inet_common.h>
 #include <net/inet_connection_sock.h>
+#include <net/ip.h>
+#include <net/ip_fib.h>
+#include <net/ip_tunnels.h>
+#include <net/net_namespace.h>
+#include <net/ping.h>
+#include <net/protocol.h>
+#include <net/raw.h>
+#include <net/route.h>
+#include <net/secure_seq.h>
+#include <net/sock.h>
 #include <net/tcp.h>
 #include <net/udp.h>
 #include <net/udplite.h>
-#include <net/ping.h>
-#include <linux/skbuff.h>
-#include <net/sock.h>
-#include <net/raw.h>
-#include <net/icmp.h>
-#include <net/inet_common.h>
-#include <net/ip_tunnels.h>
 #include <net/xfrm.h>
-#include <net/net_namespace.h>
-#include <net/secure_seq.h>
 #ifdef CONFIG_IP_MROUTE
 #include <linux/mroute.h>
 #endif
-#include <net/l3mdev.h>
 #include <net/compat.h>
+#include <net/l3mdev.h>
 
 #include <trace/events/sock.h>
 
@@ -128,12 +128,13 @@ static DEFINE_SPINLOCK(inetsw_lock);
 
 /* New destruction routine */
 
-void inet_sock_destruct(struct sock *sk)
+void inet_sock_destruct(struct sock* sk)
 {
-	struct inet_sock *inet = inet_sk(sk);
+	struct inet_sock* inet = inet_sk(sk);
 
 	__skb_queue_purge(&sk->sk_receive_queue);
-	if (sk->sk_rx_skb_cache) {
+	if (sk->sk_rx_skb_cache)
+	{
 		__kfree_skb(sk->sk_rx_skb_cache);
 		sk->sk_rx_skb_cache = NULL;
 	}
@@ -141,12 +142,13 @@ void inet_sock_destruct(struct sock *sk)
 
 	sk_mem_reclaim(sk);
 
-	if (sk->sk_type == SOCK_STREAM && sk->sk_state != TCP_CLOSE) {
-		pr_err("Attempt to release TCP socket in state %d %p\n",
-		       sk->sk_state, sk);
+	if (sk->sk_type == SOCK_STREAM && sk->sk_state != TCP_CLOSE)
+	{
+		pr_err("Attempt to release TCP socket in state %d %p\n", sk->sk_state, sk);
 		return;
 	}
-	if (!sock_flag(sk, SOCK_DEAD)) {
+	if (!sock_flag(sk, SOCK_DEAD))
+	{
 		pr_err("Attempt to release alive inet socket %p\n", sk);
 		return;
 	}
@@ -173,14 +175,16 @@ EXPORT_SYMBOL(inet_sock_destruct);
  *	Automatically bind an unbound socket.
  */
 
-static int inet_autobind(struct sock *sk)
+static int inet_autobind(struct sock* sk)
 {
-	struct inet_sock *inet;
+	struct inet_sock* inet;
 	/* We may need to bind the socket. */
 	lock_sock(sk);
 	inet = inet_sk(sk);
-	if (!inet->inet_num) {
-		if (sk->sk_prot->get_port(sk, 0)) {
+	if (!inet->inet_num)
+	{
+		if (sk->sk_prot->get_port(sk, 0))
+		{
 			release_sock(sk);
 			return -EAGAIN;
 		}
@@ -193,9 +197,9 @@ static int inet_autobind(struct sock *sk)
 /*
  *	Move a socket into listening state.
  */
-int inet_listen(struct socket *sock, int backlog)
+int inet_listen(struct socket* sock, int backlog)
 {
-	struct sock *sk = sock->sk;
+	struct sock* sk = sock->sk;
 	unsigned char old_state;
 	int err, tcp_fastopen;
 
@@ -213,7 +217,8 @@ int inet_listen(struct socket *sock, int backlog)
 	/* Really, if the socket is already in listen state
 	 * we can only allow the backlog to be adjusted.
 	 */
-	if (old_state != TCP_LISTEN) {
+	if (old_state != TCP_LISTEN)
+	{
 		/* Enable TFO w/o requiring TCP_FASTOPEN socket option.
 		 * Note that only TCP sockets (SOCK_STREAM) will reach here.
 		 * Also fastopen backlog may already been set via the option
@@ -221,9 +226,8 @@ int inet_listen(struct socket *sock, int backlog)
 		 * was shutdown() rather than close().
 		 */
 		tcp_fastopen = sock_net(sk)->ipv4.sysctl_tcp_fastopen;
-		if ((tcp_fastopen & TFO_SERVER_WO_SOCKOPT1) &&
-		    (tcp_fastopen & TFO_SERVER_ENABLE) &&
-		    !inet_csk(sk)->icsk_accept_queue.fastopenq.max_qlen) {
+		if ((tcp_fastopen & TFO_SERVER_WO_SOCKOPT1) && (tcp_fastopen & TFO_SERVER_ENABLE) && !inet_csk(sk)->icsk_accept_queue.fastopenq.max_qlen)
+		{
 			fastopen_queue_tune(sk, backlog);
 			tcp_fastopen_init_key_once(sock_net(sk));
 		}
@@ -245,13 +249,12 @@ EXPORT_SYMBOL(inet_listen);
  *	Create an inet socket.
  */
 
-static int inet_create(struct net *net, struct socket *sock, int protocol,
-		       int kern)
+static int inet_create(struct net* net, struct socket* sock, int protocol, int kern)
 {
-	struct sock *sk;
-	struct inet_protosw *answer;
-	struct inet_sock *inet;
-	struct proto *answer_prot;
+	struct sock* sk;
+	struct inet_protosw* answer;
+	struct inet_sock* inet;
+	struct proto* answer_prot;
 	unsigned char answer_flags;
 	int try_loading_module = 0;
 	int err;
@@ -265,16 +268,21 @@ static int inet_create(struct net *net, struct socket *sock, int protocol,
 lookup_protocol:
 	err = -ESOCKTNOSUPPORT;
 	rcu_read_lock();
-	list_for_each_entry_rcu(answer, &inetsw[sock->type], list) {
+	list_for_each_entry_rcu(answer, &inetsw[sock->type], list)
+	{
 
 		err = 0;
 		/* Check the non-wild match. */
-		if (protocol == answer->protocol) {
+		if (protocol == answer->protocol)
+		{
 			if (protocol != IPPROTO_IP)
 				break;
-		} else {
+		}
+		else
+		{
 			/* Check for the two wild cases. */
-			if (IPPROTO_IP == protocol) {
+			if (IPPROTO_IP == protocol)
+			{
 				protocol = answer->protocol;
 				break;
 			}
@@ -284,31 +292,31 @@ lookup_protocol:
 		err = -EPROTONOSUPPORT;
 	}
 
-	if (unlikely(err)) {
-		if (try_loading_module < 2) {
+	if (unlikely(err))
+	{
+		if (try_loading_module < 2)
+		{
 			rcu_read_unlock();
 			/*
 			 * Be more specific, e.g. net-pf-2-proto-132-type-1
 			 * (net-pf-PF_INET-proto-IPPROTO_SCTP-type-SOCK_STREAM)
 			 */
 			if (++try_loading_module == 1)
-				request_module("net-pf-%d-proto-%d-type-%d",
-					       PF_INET, protocol, sock->type);
+				request_module("net-pf-%d-proto-%d-type-%d", PF_INET, protocol, sock->type);
 			/*
 			 * Fall back to generic, e.g. net-pf-2-proto-132
 			 * (net-pf-PF_INET-proto-IPPROTO_SCTP)
 			 */
 			else
-				request_module("net-pf-%d-proto-%d",
-					       PF_INET, protocol);
+				request_module("net-pf-%d-proto-%d", PF_INET, protocol);
 			goto lookup_protocol;
-		} else
+		}
+		else
 			goto out_rcu_unlock;
 	}
 
 	err = -EPERM;
-	if (sock->type == SOCK_RAW && !kern &&
-	    !ns_capable(net->user_ns, CAP_NET_RAW))
+	if (sock->type == SOCK_RAW && !kern && !ns_capable(net->user_ns, CAP_NET_RAW))
 		goto out_rcu_unlock;
 
 	sock->ops = answer->ops;
@@ -332,7 +340,8 @@ lookup_protocol:
 
 	inet->nodefrag = 0;
 
-	if (SOCK_RAW == sock->type) {
+	if (SOCK_RAW == sock->type)
+	{
 		inet->inet_num = protocol;
 		if (IPPROTO_RAW == protocol)
 			inet->hdrincl = 1;
@@ -347,21 +356,22 @@ lookup_protocol:
 
 	sock_init_data(sock, sk);
 
-	sk->sk_destruct	   = inet_sock_destruct;
-	sk->sk_protocol	   = protocol;
+	sk->sk_destruct = inet_sock_destruct;
+	sk->sk_protocol = protocol;
 	sk->sk_backlog_rcv = sk->sk_prot->backlog_rcv;
 
-	inet->uc_ttl	= -1;
-	inet->mc_loop	= 1;
-	inet->mc_ttl	= 1;
-	inet->mc_all	= 1;
-	inet->mc_index	= 0;
-	inet->mc_list	= NULL;
-	inet->rcv_tos	= 0;
+	inet->uc_ttl = -1;
+	inet->mc_loop = 1;
+	inet->mc_ttl = 1;
+	inet->mc_all = 1;
+	inet->mc_index = 0;
+	inet->mc_list = NULL;
+	inet->rcv_tos = 0;
 
 	sk_refcnt_debug_inc(sk);
 
-	if (inet->inet_num) {
+	if (inet->inet_num)
+	{
 		/* It assumes that any protocol which allows
 		 * the user to assign a number at socket
 		 * creation time automatically
@@ -370,23 +380,28 @@ lookup_protocol:
 		inet->inet_sport = htons(inet->inet_num);
 		/* Add to protocol hash chains. */
 		err = sk->sk_prot->hash(sk);
-		if (err) {
+		if (err)
+		{
 			sk_common_release(sk);
 			goto out;
 		}
 	}
 
-	if (sk->sk_prot->init) {
+	if (sk->sk_prot->init)
+	{
 		err = sk->sk_prot->init(sk);
-		if (err) {
+		if (err)
+		{
 			sk_common_release(sk);
 			goto out;
 		}
 	}
 
-	if (!kern) {
+	if (!kern)
+	{
 		err = BPF_CGROUP_RUN_PROG_INET_SOCK(sk);
-		if (err) {
+		if (err)
+		{
 			sk_common_release(sk);
 			goto out;
 		}
@@ -398,17 +413,17 @@ out_rcu_unlock:
 	goto out;
 }
 
-
 /*
  *	The peer socket should always be NULL (or else). When we call this
  *	function we are destroying the object and from then on nobody
  *	should refer to it.
  */
-int inet_release(struct socket *sock)
+int inet_release(struct socket* sock)
 {
-	struct sock *sk = sock->sk;
+	struct sock* sk = sock->sk;
 
-	if (sk) {
+	if (sk)
+	{
 		long timeout;
 
 		if (!sk->sk_kern_sock)
@@ -425,8 +440,7 @@ int inet_release(struct socket *sock)
 		 * linger..
 		 */
 		timeout = 0;
-		if (sock_flag(sk, SOCK_LINGER) &&
-		    !(current->flags & PF_EXITING))
+		if (sock_flag(sk, SOCK_LINGER) && !(current->flags & PF_EXITING))
 			timeout = sk->sk_lingertime;
 		sk->sk_prot->close(sk, timeout);
 		sock->sk = NULL;
@@ -435,14 +449,15 @@ int inet_release(struct socket *sock)
 }
 EXPORT_SYMBOL(inet_release);
 
-int inet_bind(struct socket *sock, struct sockaddr *uaddr, int addr_len)
+int inet_bind(struct socket* sock, struct sockaddr* uaddr, int addr_len)
 {
-	struct sock *sk = sock->sk;
+	struct sock* sk = sock->sk;
 	u32 flags = BIND_WITH_LOCK;
 	int err;
 
 	/* If the socket has its own bind function then use it. (RAW) */
-	if (sk->sk_prot->bind) {
+	if (sk->sk_prot->bind)
+	{
 		return sk->sk_prot->bind(sk, uaddr, addr_len);
 	}
 	if (addr_len < sizeof(struct sockaddr_in))
@@ -451,8 +466,7 @@ int inet_bind(struct socket *sock, struct sockaddr *uaddr, int addr_len)
 	/* BPF prog is run before any checks are done so that if the prog
 	 * changes context in a wrong way it will be caught.
 	 */
-	err = BPF_CGROUP_RUN_PROG_INET_BIND_LOCK(sk, uaddr,
-						 CGROUP_INET4_BIND, &flags);
+	err = BPF_CGROUP_RUN_PROG_INET_BIND_LOCK(sk, uaddr, CGROUP_INET4_BIND, &flags);
 	if (err)
 		return err;
 
@@ -460,28 +474,27 @@ int inet_bind(struct socket *sock, struct sockaddr *uaddr, int addr_len)
 }
 EXPORT_SYMBOL(inet_bind);
 
-int __inet_bind(struct sock *sk, struct sockaddr *uaddr, int addr_len,
-		u32 flags)
+int __inet_bind(struct sock* sk, struct sockaddr* uaddr, int addr_len, u32 flags)
 {
-	struct sockaddr_in *addr = (struct sockaddr_in *)uaddr;
-	struct inet_sock *inet = inet_sk(sk);
-	struct net *net = sock_net(sk);
+	struct sockaddr_in* addr = (struct sockaddr_in*)uaddr;
+	struct inet_sock* inet = inet_sk(sk);
+	struct net* net = sock_net(sk);
 	unsigned short snum;
 	int chk_addr_ret;
 	u32 tb_id = RT_TABLE_LOCAL;
 	int err;
 
-	if (addr->sin_family != AF_INET) {
+	if (addr->sin_family != AF_INET)
+	{
 		/* Compatibility games : accept AF_UNSPEC (mapped to AF_INET)
 		 * only if s_addr is INADDR_ANY.
 		 */
 		err = -EAFNOSUPPORT;
-		if (addr->sin_family != AF_UNSPEC ||
-		    addr->sin_addr.s_addr != htonl(INADDR_ANY))
+		if (addr->sin_family != AF_UNSPEC || addr->sin_addr.s_addr != htonl(INADDR_ANY))
 			goto out;
 	}
 
-	tb_id = l3mdev_fib_table_by_index(net, sk->sk_bound_dev_if) ? : tb_id;
+	tb_id = l3mdev_fib_table_by_index(net, sk->sk_bound_dev_if) ?: tb_id;
 	chk_addr_ret = inet_addr_type_table(net, addr->sin_addr.s_addr, tb_id);
 
 	/* Not specified by any standard per-se, however it breaks too
@@ -492,18 +505,12 @@ int __inet_bind(struct sock *sk, struct sockaddr *uaddr, int addr_len,
 	 *  is temporarily down)
 	 */
 	err = -EADDRNOTAVAIL;
-	if (!inet_can_nonlocal_bind(net, inet) &&
-	    addr->sin_addr.s_addr != htonl(INADDR_ANY) &&
-	    chk_addr_ret != RTN_LOCAL &&
-	    chk_addr_ret != RTN_MULTICAST &&
-	    chk_addr_ret != RTN_BROADCAST)
+	if (!inet_can_nonlocal_bind(net, inet) && addr->sin_addr.s_addr != htonl(INADDR_ANY) && chk_addr_ret != RTN_LOCAL && chk_addr_ret != RTN_MULTICAST && chk_addr_ret != RTN_BROADCAST)
 		goto out;
 
 	snum = ntohs(addr->sin_port);
 	err = -EACCES;
-	if (!(flags & BIND_NO_CAP_NET_BIND_SERVICE) &&
-	    snum && inet_port_requires_bind_service(net, snum) &&
-	    !ns_capable(net->user_ns, CAP_NET_BIND_SERVICE))
+	if (!(flags & BIND_NO_CAP_NET_BIND_SERVICE) && snum && inet_port_requires_bind_service(net, snum) && !ns_capable(net->user_ns, CAP_NET_BIND_SERVICE))
 		goto out;
 
 	/*      We keep a pair of addresses. rcv_saddr is the one
@@ -523,19 +530,22 @@ int __inet_bind(struct sock *sk, struct sockaddr *uaddr, int addr_len,
 
 	inet->inet_rcv_saddr = inet->inet_saddr = addr->sin_addr.s_addr;
 	if (chk_addr_ret == RTN_MULTICAST || chk_addr_ret == RTN_BROADCAST)
-		inet->inet_saddr = 0;  /* Use device */
+		inet->inet_saddr = 0; /* Use device */
 
 	/* Make sure we are allowed to bind here. */
-	if (snum || !(inet->bind_address_no_port ||
-		      (flags & BIND_FORCE_ADDRESS_NO_PORT))) {
-		if (sk->sk_prot->get_port(sk, snum)) {
+	if (snum || !(inet->bind_address_no_port || (flags & BIND_FORCE_ADDRESS_NO_PORT)))
+	{
+		if (sk->sk_prot->get_port(sk, snum))
+		{
 			inet->inet_saddr = inet->inet_rcv_saddr = 0;
 			err = -EADDRINUSE;
 			goto out_release_sock;
 		}
-		if (!(flags & BIND_FROM_BPF)) {
+		if (!(flags & BIND_FROM_BPF))
+		{
 			err = BPF_CGROUP_RUN_PROG_INET4_POST_BIND(sk);
-			if (err) {
+			if (err)
+			{
 				inet->inet_saddr = inet->inet_rcv_saddr = 0;
 				goto out_release_sock;
 			}
@@ -558,10 +568,9 @@ out:
 	return err;
 }
 
-int inet_dgram_connect(struct socket *sock, struct sockaddr *uaddr,
-		       int addr_len, int flags)
+int inet_dgram_connect(struct socket* sock, struct sockaddr* uaddr, int addr_len, int flags)
 {
-	struct sock *sk = sock->sk;
+	struct sock* sk = sock->sk;
 	int err;
 
 	if (addr_len < sizeof(uaddr->sa_family))
@@ -569,7 +578,8 @@ int inet_dgram_connect(struct socket *sock, struct sockaddr *uaddr,
 	if (uaddr->sa_family == AF_UNSPEC)
 		return sk->sk_prot->disconnect(sk, flags);
 
-	if (BPF_CGROUP_PRE_CONNECT_ENABLED(sk)) {
+	if (BPF_CGROUP_PRE_CONNECT_ENABLED(sk))
+	{
 		err = sk->sk_prot->pre_connect(sk, uaddr, addr_len);
 		if (err)
 			return err;
@@ -581,7 +591,7 @@ int inet_dgram_connect(struct socket *sock, struct sockaddr *uaddr,
 }
 EXPORT_SYMBOL(inet_dgram_connect);
 
-static long inet_wait_for_connect(struct sock *sk, long timeo, int writebias)
+static long inet_wait_for_connect(struct sock* sk, long timeo, int writebias)
 {
 	DEFINE_WAIT_FUNC(wait, woken_wake_function);
 
@@ -593,7 +603,8 @@ static long inet_wait_for_connect(struct sock *sk, long timeo, int writebias)
 	 * Connect() does not allow to get error notifications
 	 * without closing the socket.
 	 */
-	while ((1 << sk->sk_state) & (TCPF_SYN_SENT | TCPF_SYN_RECV)) {
+	while ((1 << sk->sk_state) & (TCPF_SYN_SENT | TCPF_SYN_RECV))
+	{
 		release_sock(sk);
 		timeo = wait_woken(&wait, TASK_INTERRUPTIBLE, timeo);
 		lock_sock(sk);
@@ -609,10 +620,9 @@ static long inet_wait_for_connect(struct sock *sk, long timeo, int writebias)
  *	Connect to a remote host. There is regrettably still a little
  *	TCP 'magic' in here.
  */
-int __inet_stream_connect(struct socket *sock, struct sockaddr *uaddr,
-			  int addr_len, int flags, int is_sendmsg)
+int __inet_stream_connect(struct socket* sock, struct sockaddr* uaddr, int addr_len, int flags, int is_sendmsg)
 {
-	struct sock *sk = sock->sk;
+	struct sock* sk = sock->sk;
 	int err;
 	long timeo;
 
@@ -625,18 +635,21 @@ int __inet_stream_connect(struct socket *sock, struct sockaddr *uaddr,
 	 * write() will invoke tcp_sendmsg_fastopen() which calls
 	 * __inet_stream_connect().
 	 */
-	if (uaddr) {
+	if (uaddr)
+	{
 		if (addr_len < sizeof(uaddr->sa_family))
 			return -EINVAL;
 
-		if (uaddr->sa_family == AF_UNSPEC) {
+		if (uaddr->sa_family == AF_UNSPEC)
+		{
 			err = sk->sk_prot->disconnect(sk, flags);
 			sock->state = err ? SS_DISCONNECTING : SS_UNCONNECTED;
 			goto out;
 		}
 	}
 
-	switch (sock->state) {
+	switch (sock->state)
+	{
 	default:
 		err = -EINVAL;
 		goto out;
@@ -655,7 +668,8 @@ int __inet_stream_connect(struct socket *sock, struct sockaddr *uaddr,
 		if (sk->sk_state != TCP_CLOSE)
 			goto out;
 
-		if (BPF_CGROUP_PRE_CONNECT_ENABLED(sk)) {
+		if (BPF_CGROUP_PRE_CONNECT_ENABLED(sk))
+		{
 			err = sk->sk_prot->pre_connect(sk, uaddr, addr_len);
 			if (err)
 				goto out;
@@ -680,10 +694,9 @@ int __inet_stream_connect(struct socket *sock, struct sockaddr *uaddr,
 
 	timeo = sock_sndtimeo(sk, flags & O_NONBLOCK);
 
-	if ((1 << sk->sk_state) & (TCPF_SYN_SENT | TCPF_SYN_RECV)) {
-		int writebias = (sk->sk_protocol == IPPROTO_TCP) &&
-				tcp_sk(sk)->fastopen_req &&
-				tcp_sk(sk)->fastopen_req->data ? 1 : 0;
+	if ((1 << sk->sk_state) & (TCPF_SYN_SENT | TCPF_SYN_RECV))
+	{
+		int writebias = (sk->sk_protocol == IPPROTO_TCP) && tcp_sk(sk)->fastopen_req && tcp_sk(sk)->fastopen_req->data ? 1 : 0;
 
 		/* Error code is set above */
 		if (!timeo || !inet_wait_for_connect(sk, timeo, writebias))
@@ -711,7 +724,7 @@ out:
 	return err;
 
 sock_error:
-	err = sock_error(sk) ? : -ECONNABORTED;
+	err = sock_error(sk) ?: -ECONNABORTED;
 	sock->state = SS_UNCONNECTED;
 	if (sk->sk_prot->disconnect(sk, flags))
 		sock->state = SS_DISCONNECTING;
@@ -719,8 +732,7 @@ sock_error:
 }
 EXPORT_SYMBOL(__inet_stream_connect);
 
-int inet_stream_connect(struct socket *sock, struct sockaddr *uaddr,
-			int addr_len, int flags)
+int inet_stream_connect(struct socket* sock, struct sockaddr* uaddr, int addr_len, int flags)
 {
 	int err;
 
@@ -735,22 +747,19 @@ EXPORT_SYMBOL(inet_stream_connect);
  *	Accept a pending connection. The TCP layer now gives BSD semantics.
  */
 
-int inet_accept(struct socket *sock, struct socket *newsock, int flags,
-		bool kern)
+int inet_accept(struct socket* sock, struct socket* newsock, int flags, bool kern)
 {
-	struct sock *sk1 = sock->sk;
+	struct sock* sk1 = sock->sk;
 	int err = -EINVAL;
-	struct sock *sk2 = sk1->sk_prot->accept(sk1, flags, &err, kern);
-
-	if (!sk2)
+	// struct sock* sk2 = sk1->sk_prot->accept(sk1, flags, &err, kern);
+	struct sock* sk2 = inet_csk_accept(sk1, flags, &err, kern);
+	if (sk2 == NULL)
 		goto do_err;
 
 	lock_sock(sk2);
 
 	sock_rps_record_flow(sk2);
-	WARN_ON(!((1 << sk2->sk_state) &
-		  (TCPF_ESTABLISHED | TCPF_SYN_RECV |
-		  TCPF_CLOSE_WAIT | TCPF_CLOSE)));
+	WARN_ON(!((1 << sk2->sk_state) & (TCPF_ESTABLISHED | TCPF_SYN_RECV | TCPF_CLOSE_WAIT | TCPF_CLOSE)));
 
 	sock_graft(sk2, newsock);
 
@@ -762,71 +771,69 @@ do_err:
 }
 EXPORT_SYMBOL(inet_accept);
 
-/*
- *	This does both peername and sockname.
- */
-int inet_getname(struct socket *sock, struct sockaddr *uaddr,
-		 int peer)
+/// @brief
+/// 이 함수는 peername과 sockname을 모두 수행한다.
+/// @param sock
+/// @param uaddr
+/// @param peer
+/// @return
+int inet_getname(struct socket* sock, struct sockaddr* uaddr, int peer)
 {
-	struct sock *sk		= sock->sk;
-	struct inet_sock *inet	= inet_sk(sk);
-	DECLARE_SOCKADDR(struct sockaddr_in *, sin, uaddr);
+	struct sock* sk = sock->sk;
+	struct inet_sock* inet = inet_sk(sk);
+	DECLARE_SOCKADDR(struct sockaddr_in*, sin, uaddr);
 
 	sin->sin_family = AF_INET;
-	if (peer) {
-		if (!inet->inet_dport ||
-		    (((1 << sk->sk_state) & (TCPF_CLOSE | TCPF_SYN_SENT)) &&
-		     peer == 1))
+	if (peer != 0)
+	{
+		// 피어의 정보인 경우
+		if (!inet->inet_dport || (((1 << sk->sk_state) & (TCPF_CLOSE | TCPF_SYN_SENT)) && peer == 1))
 			return -ENOTCONN;
 		sin->sin_port = inet->inet_dport;
 		sin->sin_addr.s_addr = inet->inet_daddr;
-		BPF_CGROUP_RUN_SA_PROG_LOCK(sk, (struct sockaddr *)sin,
-					    CGROUP_INET4_GETPEERNAME,
-					    NULL);
-	} else {
+		BPF_CGROUP_RUN_SA_PROG_LOCK(sk, (struct sockaddr*)sin, CGROUP_INET4_GETPEERNAME, NULL);
+	}
+	else
+	{
+		// 내 정보인 경우
 		__be32 addr = inet->inet_rcv_saddr;
 		if (!addr)
 			addr = inet->inet_saddr;
 		sin->sin_port = inet->inet_sport;
 		sin->sin_addr.s_addr = addr;
-		BPF_CGROUP_RUN_SA_PROG_LOCK(sk, (struct sockaddr *)sin,
-					    CGROUP_INET4_GETSOCKNAME,
-					    NULL);
+		BPF_CGROUP_RUN_SA_PROG_LOCK(sk, (struct sockaddr*)sin, CGROUP_INET4_GETSOCKNAME, NULL);
 	}
 	memset(sin->sin_zero, 0, sizeof(sin->sin_zero));
 	return sizeof(*sin);
 }
 EXPORT_SYMBOL(inet_getname);
 
-int inet_send_prepare(struct sock *sk)
+int inet_send_prepare(struct sock* sk)
 {
 	sock_rps_record_flow(sk);
 
 	/* We may need to bind the socket. */
-	if (data_race(!inet_sk(sk)->inet_num) && !sk->sk_prot->no_autobind &&
-	    inet_autobind(sk))
+	if (data_race(!inet_sk(sk)->inet_num) && !sk->sk_prot->no_autobind && inet_autobind(sk))
 		return -EAGAIN;
 
 	return 0;
 }
 EXPORT_SYMBOL_GPL(inet_send_prepare);
 
-int inet_sendmsg(struct socket *sock, struct msghdr *msg, size_t size)
+int inet_sendmsg(struct socket* sock, struct msghdr* msg, size_t size)
 {
-	struct sock *sk = sock->sk;
+	struct sock* sk = sock->sk;
 
 	if (unlikely(inet_send_prepare(sk)))
 		return -EAGAIN;
 
-	return INDIRECT_CALL_2(sk->sk_prot->sendmsg, tcp_sendmsg, udp_sendmsg,
-			       sk, msg, size);
+	return INDIRECT_CALL_2(sk->sk_prot->sendmsg, tcp_sendmsg, udp_sendmsg, sk, msg, size);
 }
 EXPORT_SYMBOL(inet_sendmsg);
 
-ssize_t inet_sendpage(struct socket *sock, struct page *page, int offset,
-		      size_t size, int flags)
+ssize_t inet_sendpage(struct socket* sock, struct page* page, int offset, size_t size, int flags)
 {
-	struct sock *sk = sock->sk;
+	struct sock* sk = sock->sk;
 
 	if (unlikely(inet_send_prepare(sk)))
 		return -EAGAIN;
@@ -837,77 +844,106 @@ ssize_t inet_sendpage(struct socket *sock, struct page *page, int offset,
 }
 EXPORT_SYMBOL(inet_sendpage);
 
-INDIRECT_CALLABLE_DECLARE(int udp_recvmsg(struct sock *, struct msghdr *,
-					  size_t, int, int, int *));
-int inet_recvmsg(struct socket *sock, struct msghdr *msg, size_t size,
-		 int flags)
+INDIRECT_CALLABLE_DECLARE(int udp_recvmsg(struct sock*, struct msghdr*, size_t, int, int, int*));
+int inet_recvmsg(struct socket* sock, struct msghdr* msg, size_t size, int flags)
 {
-	struct sock *sk = sock->sk;
+	struct sock* sk = sock->sk;
 	int addr_len = 0;
 	int err;
 
 	if (likely(!(flags & MSG_ERRQUEUE)))
 		sock_rps_record_flow(sk);
 
-	err = INDIRECT_CALL_2(sk->sk_prot->recvmsg, tcp_recvmsg, udp_recvmsg,
-			      sk, msg, size, flags & MSG_DONTWAIT,
-			      flags & ~MSG_DONTWAIT, &addr_len);
+	err = INDIRECT_CALL_2(sk->sk_prot->recvmsg, tcp_recvmsg, udp_recvmsg, sk, msg, size, flags & MSG_DONTWAIT, flags & ~MSG_DONTWAIT, &addr_len);
 	if (err >= 0)
 		msg->msg_namelen = addr_len;
 	return err;
 }
 EXPORT_SYMBOL(inet_recvmsg);
 
-int inet_shutdown(struct socket *sock, int how)
+int inet_shutdown(struct socket* sock, int how)
 {
-	struct sock *sk = sock->sk;
+	// 이것은 정석대로라면 소켓이 TCP 소켓인지 사전에 확인해야만 한다.
+	struct sock* sk = sock->sk;
 	int err = 0;
 
-	/* This should really check to make sure
-	 * the socket is a TCP socket. (WHY AC...)
-	 */
-	how++; /* maps 0->1 has the advantage of making bit 1 rcvs and
-		       1->2 bit 2 snds.
-		       2->3 */
-	if ((how & ~SHUTDOWN_MASK) || !how)	/* MAXINT->0 */
+	// ++ 함으로써 1 은 recv, 2 는 send 를 가지며 3은 recv, send 를 둘다 포함하는 비트 체크가 가능하다는 장점이 있다.
+	how++;
+
+	if ((how & ~SHUTDOWN_MASK) || how == 0 /* MAXINT */)
+	{
+		// how 가 SHUTDOWN_MASK 를 넘어서거나 0 이면 에러이다.
 		return -EINVAL;
+	}
 
 	lock_sock(sk);
-	if (sock->state == SS_CONNECTING) {
-		if ((1 << sk->sk_state) &
-		    (TCPF_SYN_SENT | TCPF_SYN_RECV | TCPF_CLOSE))
+
+	// 셧다운 시도시 소켓이 원격에 연결(connect)중인 상태일 때
+	if (sock->state == SS_CONNECTING)
+	{
+		// SYN_SENT(최초 연결) or SYN_RECV(연결 수락 대기) or CLOSE(연결 종료) 상태인 경우
+		if ((1 << sk->sk_state) & (TCPF_SYN_SENT | TCPF_SYN_RECV | TCPF_CLOSE))
+		{
+			// SS_DISCONNECTING 상태로 변경
 			sock->state = SS_DISCONNECTING;
+		}
 		else
+		{
+			// 그 외의 경우 SS_CONNECTED 상태로 변경
 			sock->state = SS_CONNECTED;
+		}
 	}
 
-	switch (sk->sk_state) {
-	case TCP_CLOSE:
-		err = -ENOTCONN;
-		/* Hack to wake up other listeners, who can poll for
-		   EPOLLHUP, even on eg. unconnected UDP sockets -- RR */
-		fallthrough;
-	default:
+	if (sk->sk_state == TCP_CLOSE)
+	{
+		// 이미 종료된 소켓인 경우
+
+		// EPOLLHUP을 감시할 수 있는 다른 listener 을 wake up 하기 위한 트릭이다.
+		// ex) 연결 지향이 아닌 udp 소켓에서도 사용된다. -- RR
+		err = -1 * ENOTCONN;
+
 		sk->sk_shutdown |= how;
-		if (sk->sk_prot->shutdown)
-			sk->sk_prot->shutdown(sk, how);
-		break;
+		if (sk->sk_prot->shutdown != NULL)
+		{
+			// sk->sk_prot->shutdown(sk, how);
+			tcp_shutdown(sk, how);
+		}
+	}
+	else if (sk->sk_state == TCP_LISTEN)
+	{
+		// listen 소켓인 경우
 
-	/* Remaining two branches are temporary solution for missing
-	 * close() in multithreaded environment. It is _not_ a good idea,
-	 * but we have no choice until close() is repaired at VFS level.
-	 */
-	case TCP_LISTEN:
-		if (!(how & RCV_SHUTDOWN))
-			break;
-		fallthrough;
-	case TCP_SYN_SENT:
-		err = sk->sk_prot->disconnect(sk, O_NONBLOCK);
-		sock->state = err ? SS_DISCONNECTING : SS_UNCONNECTED;
-		break;
+		// 다중 스레드 환경에서 close()가 누락된 경우의 임시 해결책이다.
+		// 좋은 생각은 아니지만, close()가 VFS(Virtual File System?) 수준에서 수정될 때까지 다른 선택지가 없다.
+		if ((how & RCV_SHUTDOWN) != 0)
+		{
+			// err = sk->sk_prot->disconnect(sk, O_NONBLOCK);
+			err = tcp_disconnect(sk, O_NONBLOCK);
+			sock->state = (err != 0) ? SS_DISCONNECTING : SS_UNCONNECTED;
+		}
+	}
+	else if (sk->sk_state == TCP_SYN_SENT)
+	{
+		// client 가 connect()를 호출한 후 서버로부터 SYN+ACK를 받기 전에 close()를 호출한 경우
+
+		// 다중 스레드 환경에서 close()가 누락된 경우의 임시 해결책이다.
+		// 좋은 생각은 아니지만, close()가 VFS(Virtual File System?) 수준에서 수정될 때까지 다른 선택지가 없다.
+		// err = sk->sk_prot->disconnect(sk, O_NONBLOCK);
+		err = tcp_disconnect(sk, O_NONBLOCK);
+		sock->state = (err != 0) ? SS_DISCONNECTING : SS_UNCONNECTED;
+	}
+	else
+	{
+		// 그 외의 경우
+		sk->sk_shutdown |= how;
+		if (sk->sk_prot->shutdown != NULL)
+		{
+			// sk->sk_prot->shutdown(sk, how);
+			tcp_shutdown(sk, how);
+		}
 	}
 
-	/* Wake up anyone sleeping in poll. */
+	// poll() 에서 대기 중인 대상들을 깨운다.
 	sk->sk_state_change(sk);
 	release_sock(sk);
 	return err;
@@ -924,16 +960,17 @@ EXPORT_SYMBOL(inet_shutdown);
  *	There's a good 20K of config code hanging around the kernel.
  */
 
-int inet_ioctl(struct socket *sock, unsigned int cmd, unsigned long arg)
+int inet_ioctl(struct socket* sock, unsigned int cmd, unsigned long arg)
 {
-	struct sock *sk = sock->sk;
+	struct sock* sk = sock->sk;
 	int err = 0;
-	struct net *net = sock_net(sk);
-	void __user *p = (void __user *)arg;
+	struct net* net = sock_net(sk);
+	void __user* p = (void __user*)arg;
 	struct ifreq ifr;
 	struct rtentry rt;
 
-	switch (cmd) {
+	switch (cmd)
+	{
 	case SIOCADDRT:
 	case SIOCDELRT:
 		if (copy_from_user(&rt, p, sizeof(struct rtentry)))
@@ -946,7 +983,7 @@ int inet_ioctl(struct socket *sock, unsigned int cmd, unsigned long arg)
 	case SIOCDARP:
 	case SIOCGARP:
 	case SIOCSARP:
-		err = arp_ioctl(net, cmd, (void __user *)arg);
+		err = arp_ioctl(net, cmd, (void __user*)arg);
 		break;
 	case SIOCGIFADDR:
 	case SIOCGIFBRDADDR:
@@ -982,32 +1019,25 @@ int inet_ioctl(struct socket *sock, unsigned int cmd, unsigned long arg)
 EXPORT_SYMBOL(inet_ioctl);
 
 #ifdef CONFIG_COMPAT
-static int inet_compat_routing_ioctl(struct sock *sk, unsigned int cmd,
-		struct compat_rtentry __user *ur)
+static int inet_compat_routing_ioctl(struct sock* sk, unsigned int cmd, struct compat_rtentry __user* ur)
 {
 	compat_uptr_t rtdev;
 	struct rtentry rt;
 
-	if (copy_from_user(&rt.rt_dst, &ur->rt_dst,
-			3 * sizeof(struct sockaddr)) ||
-	    get_user(rt.rt_flags, &ur->rt_flags) ||
-	    get_user(rt.rt_metric, &ur->rt_metric) ||
-	    get_user(rt.rt_mtu, &ur->rt_mtu) ||
-	    get_user(rt.rt_window, &ur->rt_window) ||
-	    get_user(rt.rt_irtt, &ur->rt_irtt) ||
-	    get_user(rtdev, &ur->rt_dev))
+	if (copy_from_user(&rt.rt_dst, &ur->rt_dst, 3 * sizeof(struct sockaddr)) || get_user(rt.rt_flags, &ur->rt_flags) || get_user(rt.rt_metric, &ur->rt_metric) || get_user(rt.rt_mtu, &ur->rt_mtu) || get_user(rt.rt_window, &ur->rt_window) || get_user(rt.rt_irtt, &ur->rt_irtt) || get_user(rtdev, &ur->rt_dev))
 		return -EFAULT;
 
 	rt.rt_dev = compat_ptr(rtdev);
 	return ip_rt_ioctl(sock_net(sk), cmd, &rt);
 }
 
-static int inet_compat_ioctl(struct socket *sock, unsigned int cmd, unsigned long arg)
+static int inet_compat_ioctl(struct socket* sock, unsigned int cmd, unsigned long arg)
 {
-	void __user *argp = compat_ptr(arg);
-	struct sock *sk = sock->sk;
+	void __user* argp = compat_ptr(arg);
+	struct sock* sk = sock->sk;
 
-	switch (cmd) {
+	switch (cmd)
+	{
 	case SIOCADDRT:
 	case SIOCDELRT:
 		return inet_compat_routing_ioctl(sk, cmd, argp);
@@ -1020,63 +1050,63 @@ static int inet_compat_ioctl(struct socket *sock, unsigned int cmd, unsigned lon
 #endif /* CONFIG_COMPAT */
 
 const struct proto_ops inet_stream_ops = {
-	.family		   = PF_INET,
-	.owner		   = THIS_MODULE,
-	.release	   = inet_release,
-	.bind		   = inet_bind,
-	.connect	   = inet_stream_connect,
-	.socketpair	   = sock_no_socketpair,
-	.accept		   = inet_accept,
-	.getname	   = inet_getname,
-	.poll		   = tcp_poll,
-	.ioctl		   = inet_ioctl,
-	.gettstamp	   = sock_gettstamp,
-	.listen		   = inet_listen,
-	.shutdown	   = inet_shutdown,
-	.setsockopt	   = sock_common_setsockopt,
-	.getsockopt	   = sock_common_getsockopt,
-	.sendmsg	   = inet_sendmsg,
-	.recvmsg	   = inet_recvmsg,
+	.family = PF_INET,
+	.owner = THIS_MODULE,
+	.release = inet_release,
+	.bind = inet_bind,
+	.connect = inet_stream_connect,
+	.socketpair = sock_no_socketpair,
+	.accept = inet_accept,
+	.getname = inet_getname,
+	.poll = tcp_poll,
+	.ioctl = inet_ioctl,
+	.gettstamp = sock_gettstamp,
+	.listen = inet_listen,
+	.shutdown = inet_shutdown,
+	.setsockopt = sock_common_setsockopt,
+	.getsockopt = sock_common_getsockopt,
+	.sendmsg = inet_sendmsg,
+	.recvmsg = inet_recvmsg,
 #ifdef CONFIG_MMU
-	.mmap		   = tcp_mmap,
+	.mmap = tcp_mmap,
 #endif
-	.sendpage	   = inet_sendpage,
-	.splice_read	   = tcp_splice_read,
-	.read_sock	   = tcp_read_sock,
-	.sendmsg_locked    = tcp_sendmsg_locked,
-	.sendpage_locked   = tcp_sendpage_locked,
-	.peek_len	   = tcp_peek_len,
+	.sendpage = inet_sendpage,
+	.splice_read = tcp_splice_read,
+	.read_sock = tcp_read_sock,
+	.sendmsg_locked = tcp_sendmsg_locked,
+	.sendpage_locked = tcp_sendpage_locked,
+	.peek_len = tcp_peek_len,
 #ifdef CONFIG_COMPAT
-	.compat_ioctl	   = inet_compat_ioctl,
+	.compat_ioctl = inet_compat_ioctl,
 #endif
-	.set_rcvlowat	   = tcp_set_rcvlowat,
+	.set_rcvlowat = tcp_set_rcvlowat,
 };
 EXPORT_SYMBOL(inet_stream_ops);
 
 const struct proto_ops inet_dgram_ops = {
-	.family		   = PF_INET,
-	.owner		   = THIS_MODULE,
-	.release	   = inet_release,
-	.bind		   = inet_bind,
-	.connect	   = inet_dgram_connect,
-	.socketpair	   = sock_no_socketpair,
-	.accept		   = sock_no_accept,
-	.getname	   = inet_getname,
-	.poll		   = udp_poll,
-	.ioctl		   = inet_ioctl,
-	.gettstamp	   = sock_gettstamp,
-	.listen		   = sock_no_listen,
-	.shutdown	   = inet_shutdown,
-	.setsockopt	   = sock_common_setsockopt,
-	.getsockopt	   = sock_common_getsockopt,
-	.sendmsg	   = inet_sendmsg,
-	.read_sock	   = udp_read_sock,
-	.recvmsg	   = inet_recvmsg,
-	.mmap		   = sock_no_mmap,
-	.sendpage	   = inet_sendpage,
-	.set_peek_off	   = sk_set_peek_off,
+	.family = PF_INET,
+	.owner = THIS_MODULE,
+	.release = inet_release,
+	.bind = inet_bind,
+	.connect = inet_dgram_connect,
+	.socketpair = sock_no_socketpair,
+	.accept = sock_no_accept,
+	.getname = inet_getname,
+	.poll = udp_poll,
+	.ioctl = inet_ioctl,
+	.gettstamp = sock_gettstamp,
+	.listen = sock_no_listen,
+	.shutdown = inet_shutdown,
+	.setsockopt = sock_common_setsockopt,
+	.getsockopt = sock_common_getsockopt,
+	.sendmsg = inet_sendmsg,
+	.read_sock = udp_read_sock,
+	.recvmsg = inet_recvmsg,
+	.mmap = sock_no_mmap,
+	.sendpage = inet_sendpage,
+	.set_peek_off = sk_set_peek_off,
 #ifdef CONFIG_COMPAT
-	.compat_ioctl	   = inet_compat_ioctl,
+	.compat_ioctl = inet_compat_ioctl,
 #endif
 };
 EXPORT_SYMBOL(inet_dgram_ops);
@@ -1086,83 +1116,80 @@ EXPORT_SYMBOL(inet_dgram_ops);
  * udp_poll
  */
 static const struct proto_ops inet_sockraw_ops = {
-	.family		   = PF_INET,
-	.owner		   = THIS_MODULE,
-	.release	   = inet_release,
-	.bind		   = inet_bind,
-	.connect	   = inet_dgram_connect,
-	.socketpair	   = sock_no_socketpair,
-	.accept		   = sock_no_accept,
-	.getname	   = inet_getname,
-	.poll		   = datagram_poll,
-	.ioctl		   = inet_ioctl,
-	.gettstamp	   = sock_gettstamp,
-	.listen		   = sock_no_listen,
-	.shutdown	   = inet_shutdown,
-	.setsockopt	   = sock_common_setsockopt,
-	.getsockopt	   = sock_common_getsockopt,
-	.sendmsg	   = inet_sendmsg,
-	.recvmsg	   = inet_recvmsg,
-	.mmap		   = sock_no_mmap,
-	.sendpage	   = inet_sendpage,
+	.family = PF_INET,
+	.owner = THIS_MODULE,
+	.release = inet_release,
+	.bind = inet_bind,
+	.connect = inet_dgram_connect,
+	.socketpair = sock_no_socketpair,
+	.accept = sock_no_accept,
+	.getname = inet_getname,
+	.poll = datagram_poll,
+	.ioctl = inet_ioctl,
+	.gettstamp = sock_gettstamp,
+	.listen = sock_no_listen,
+	.shutdown = inet_shutdown,
+	.setsockopt = sock_common_setsockopt,
+	.getsockopt = sock_common_getsockopt,
+	.sendmsg = inet_sendmsg,
+	.recvmsg = inet_recvmsg,
+	.mmap = sock_no_mmap,
+	.sendpage = inet_sendpage,
 #ifdef CONFIG_COMPAT
-	.compat_ioctl	   = inet_compat_ioctl,
+	.compat_ioctl = inet_compat_ioctl,
 #endif
 };
 
 static const struct net_proto_family inet_family_ops = {
 	.family = PF_INET,
 	.create = inet_create,
-	.owner	= THIS_MODULE,
+	.owner = THIS_MODULE,
 };
 
 /* Upon startup we insert all the elements in inetsw_array[] into
  * the linked list inetsw.
  */
-static struct inet_protosw inetsw_array[] =
-{
-	{
-		.type =       SOCK_STREAM,
-		.protocol =   IPPROTO_TCP,
-		.prot =       &tcp_prot,
-		.ops =        &inet_stream_ops,
-		.flags =      INET_PROTOSW_PERMANENT |
-			      INET_PROTOSW_ICSK,
-	},
+static struct inet_protosw inetsw_array[]
+	= {{
+		   .type = SOCK_STREAM,
+		   .protocol = IPPROTO_TCP,
+		   .prot = &tcp_prot,
+		   .ops = &inet_stream_ops,
+		   .flags = INET_PROTOSW_PERMANENT | INET_PROTOSW_ICSK,
+	   },
 
-	{
-		.type =       SOCK_DGRAM,
-		.protocol =   IPPROTO_UDP,
-		.prot =       &udp_prot,
-		.ops =        &inet_dgram_ops,
-		.flags =      INET_PROTOSW_PERMANENT,
-       },
+	   {
+		   .type = SOCK_DGRAM,
+		   .protocol = IPPROTO_UDP,
+		   .prot = &udp_prot,
+		   .ops = &inet_dgram_ops,
+		   .flags = INET_PROTOSW_PERMANENT,
+	   },
 
-       {
-		.type =       SOCK_DGRAM,
-		.protocol =   IPPROTO_ICMP,
-		.prot =       &ping_prot,
-		.ops =        &inet_sockraw_ops,
-		.flags =      INET_PROTOSW_REUSE,
-       },
+	   {
+		   .type = SOCK_DGRAM,
+		   .protocol = IPPROTO_ICMP,
+		   .prot = &ping_prot,
+		   .ops = &inet_sockraw_ops,
+		   .flags = INET_PROTOSW_REUSE,
+	   },
 
-       {
-	       .type =       SOCK_RAW,
-	       .protocol =   IPPROTO_IP,	/* wild card */
-	       .prot =       &raw_prot,
-	       .ops =        &inet_sockraw_ops,
-	       .flags =      INET_PROTOSW_REUSE,
-       }
-};
+	   {
+		   .type = SOCK_RAW,
+		   .protocol = IPPROTO_IP, /* wild card */
+		   .prot = &raw_prot,
+		   .ops = &inet_sockraw_ops,
+		   .flags = INET_PROTOSW_REUSE,
+	   }};
 
 #define INETSW_ARRAY_LEN ARRAY_SIZE(inetsw_array)
 
-void inet_register_protosw(struct inet_protosw *p)
+void inet_register_protosw(struct inet_protosw* p)
 {
-	struct list_head *lh;
-	struct inet_protosw *answer;
+	struct list_head* lh;
+	struct inet_protosw* answer;
 	int protocol = p->protocol;
-	struct list_head *last_perm;
+	struct list_head* last_perm;
 
 	spin_lock_bh(&inetsw_lock);
 
@@ -1171,7 +1198,8 @@ void inet_register_protosw(struct inet_protosw *p)
 
 	/* If we are trying to override a permanent protocol, bail. */
 	last_perm = &inetsw[p->type];
-	list_for_each(lh, &inetsw[p->type]) {
+	list_for_each(lh, &inetsw[p->type])
+	{
 		answer = list_entry(lh, struct inet_protosw, list);
 		/* Check only the non-wild match. */
 		if ((INET_PROTOSW_PERMANENT & answer->flags) == 0)
@@ -1198,18 +1226,19 @@ out_permanent:
 	goto out;
 
 out_illegal:
-	pr_err("Ignoring attempt to register invalid socket type %d\n",
-	       p->type);
+	pr_err("Ignoring attempt to register invalid socket type %d\n", p->type);
 	goto out;
 }
 EXPORT_SYMBOL(inet_register_protosw);
 
-void inet_unregister_protosw(struct inet_protosw *p)
+void inet_unregister_protosw(struct inet_protosw* p)
 {
-	if (INET_PROTOSW_PERMANENT & p->flags) {
-		pr_err("Attempt to unregister permanent protocol %d\n",
-		       p->protocol);
-	} else {
+	if (INET_PROTOSW_PERMANENT & p->flags)
+	{
+		pr_err("Attempt to unregister permanent protocol %d\n", p->protocol);
+	}
+	else
+	{
 		spin_lock_bh(&inetsw_lock);
 		list_del_rcu(&p->list);
 		spin_unlock_bh(&inetsw_lock);
@@ -1219,26 +1248,23 @@ void inet_unregister_protosw(struct inet_protosw *p)
 }
 EXPORT_SYMBOL(inet_unregister_protosw);
 
-static int inet_sk_reselect_saddr(struct sock *sk)
+static int inet_sk_reselect_saddr(struct sock* sk)
 {
-	struct inet_sock *inet = inet_sk(sk);
+	struct inet_sock* inet = inet_sk(sk);
 	__be32 old_saddr = inet->inet_saddr;
 	__be32 daddr = inet->inet_daddr;
-	struct flowi4 *fl4;
-	struct rtable *rt;
+	struct flowi4* fl4;
+	struct rtable* rt;
 	__be32 new_saddr;
-	struct ip_options_rcu *inet_opt;
+	struct ip_options_rcu* inet_opt;
 
-	inet_opt = rcu_dereference_protected(inet->inet_opt,
-					     lockdep_sock_is_held(sk));
+	inet_opt = rcu_dereference_protected(inet->inet_opt, lockdep_sock_is_held(sk));
 	if (inet_opt && inet_opt->opt.srr)
 		daddr = inet_opt->opt.faddr;
 
 	/* Query new route. */
 	fl4 = &inet->cork.fl.u.ip4;
-	rt = ip_route_connect(fl4, daddr, 0, RT_CONN_FLAGS(sk),
-			      sk->sk_bound_dev_if, sk->sk_protocol,
-			      inet->inet_sport, inet->inet_dport, sk);
+	rt = ip_route_connect(fl4, daddr, 0, RT_CONN_FLAGS(sk), sk->sk_bound_dev_if, sk->sk_protocol, inet->inet_sport, inet->inet_dport, sk);
 	if (IS_ERR(rt))
 		return PTR_ERR(rt);
 
@@ -1249,9 +1275,9 @@ static int inet_sk_reselect_saddr(struct sock *sk)
 	if (new_saddr == old_saddr)
 		return 0;
 
-	if (sock_net(sk)->ipv4.sysctl_ip_dynaddr > 1) {
-		pr_info("%s(): shifting inet->saddr from %pI4 to %pI4\n",
-			__func__, &old_saddr, &new_saddr);
+	if (sock_net(sk)->ipv4.sysctl_ip_dynaddr > 1)
+	{
+		pr_info("%s(): shifting inet->saddr from %pI4 to %pI4\n", __func__, &old_saddr, &new_saddr);
 	}
 
 	inet->inet_saddr = inet->inet_rcv_saddr = new_saddr;
@@ -1267,13 +1293,13 @@ static int inet_sk_reselect_saddr(struct sock *sk)
 	return __sk_prot_rehash(sk);
 }
 
-int inet_sk_rebuild_header(struct sock *sk)
+int inet_sk_rebuild_header(struct sock* sk)
 {
-	struct inet_sock *inet = inet_sk(sk);
-	struct rtable *rt = (struct rtable *)__sk_dst_check(sk, 0);
+	struct inet_sock* inet = inet_sk(sk);
+	struct rtable* rt = (struct rtable*)__sk_dst_check(sk, 0);
 	__be32 daddr;
-	struct ip_options_rcu *inet_opt;
-	struct flowi4 *fl4;
+	struct ip_options_rcu* inet_opt;
+	struct flowi4* fl4;
 	int err;
 
 	/* Route is OK, nothing to do. */
@@ -1288,14 +1314,14 @@ int inet_sk_rebuild_header(struct sock *sk)
 		daddr = inet_opt->opt.faddr;
 	rcu_read_unlock();
 	fl4 = &inet->cork.fl.u.ip4;
-	rt = ip_route_output_ports(sock_net(sk), fl4, sk, daddr, inet->inet_saddr,
-				   inet->inet_dport, inet->inet_sport,
-				   sk->sk_protocol, RT_CONN_FLAGS(sk),
-				   sk->sk_bound_dev_if);
-	if (!IS_ERR(rt)) {
+	rt = ip_route_output_ports(sock_net(sk), fl4, sk, daddr, inet->inet_saddr, inet->inet_dport, inet->inet_sport, sk->sk_protocol, RT_CONN_FLAGS(sk), sk->sk_bound_dev_if);
+	if (!IS_ERR(rt))
+	{
 		err = 0;
 		sk_setup_caps(sk, &rt->dst);
-	} else {
+	}
+	else
+	{
 		err = PTR_ERR(rt);
 
 		/* Routing failed... */
@@ -1304,10 +1330,7 @@ int inet_sk_rebuild_header(struct sock *sk)
 		 * Other protocols have to map its equivalent state to TCP_SYN_SENT.
 		 * DCCP maps its DCCP_REQUESTING state to TCP_SYN_SENT. -acme
 		 */
-		if (!sock_net(sk)->ipv4.sysctl_ip_dynaddr ||
-		    sk->sk_state != TCP_SYN_SENT ||
-		    (sk->sk_userlocks & SOCK_BINDADDR_LOCK) ||
-		    (err = inet_sk_reselect_saddr(sk)) != 0)
+		if (!sock_net(sk)->ipv4.sysctl_ip_dynaddr || sk->sk_state != TCP_SYN_SENT || (sk->sk_userlocks & SOCK_BINDADDR_LOCK) || (err = inet_sk_reselect_saddr(sk)) != 0)
 			sk->sk_err_soft = -err;
 	}
 
@@ -1315,27 +1338,26 @@ int inet_sk_rebuild_header(struct sock *sk)
 }
 EXPORT_SYMBOL(inet_sk_rebuild_header);
 
-void inet_sk_set_state(struct sock *sk, int state)
+void inet_sk_set_state(struct sock* sk, int state)
 {
 	trace_inet_sock_set_state(sk, sk->sk_state, state);
 	sk->sk_state = state;
 }
 EXPORT_SYMBOL(inet_sk_set_state);
 
-void inet_sk_state_store(struct sock *sk, int newstate)
+void inet_sk_state_store(struct sock* sk, int newstate)
 {
 	trace_inet_sock_set_state(sk, sk->sk_state, newstate);
 	smp_store_release(&sk->sk_state, newstate);
 }
 
-struct sk_buff *inet_gso_segment(struct sk_buff *skb,
-				 netdev_features_t features)
+struct sk_buff* inet_gso_segment(struct sk_buff* skb, netdev_features_t features)
 {
 	bool udpfrag = false, fixedid = false, gso_partial, encap;
-	struct sk_buff *segs = ERR_PTR(-EINVAL);
-	const struct net_offload *ops;
+	struct sk_buff* segs = ERR_PTR(-EINVAL);
+	const struct net_offload* ops;
 	unsigned int offset = 0;
-	struct iphdr *iph;
+	struct iphdr* iph;
 	int proto, tot_len;
 	int nhoff;
 	int ihl;
@@ -1368,7 +1390,8 @@ struct sk_buff *inet_gso_segment(struct sk_buff *skb,
 
 	segs = ERR_PTR(-EPROTONOSUPPORT);
 
-	if (!skb->encapsulation || encap) {
+	if (!skb->encapsulation || encap)
+	{
 		udpfrag = !!(skb_shinfo(skb)->gso_type & SKB_GSO_UDP);
 		fixedid = !!(skb_shinfo(skb)->gso_type & SKB_GSO_TCP_FIXEDID);
 
@@ -1387,27 +1410,32 @@ struct sk_buff *inet_gso_segment(struct sk_buff *skb,
 	gso_partial = !!(skb_shinfo(segs)->gso_type & SKB_GSO_PARTIAL);
 
 	skb = segs;
-	do {
-		iph = (struct iphdr *)(skb_mac_header(skb) + nhoff);
-		if (udpfrag) {
+	do
+	{
+		iph = (struct iphdr*)(skb_mac_header(skb) + nhoff);
+		if (udpfrag)
+		{
 			iph->frag_off = htons(offset >> 3);
 			if (skb->next)
 				iph->frag_off |= htons(IP_MF);
 			offset += skb->len - nhoff - ihl;
 			tot_len = skb->len - nhoff;
-		} else if (skb_is_gso(skb)) {
-			if (!fixedid) {
+		}
+		else if (skb_is_gso(skb))
+		{
+			if (!fixedid)
+			{
 				iph->id = htons(id);
 				id += skb_shinfo(skb)->gso_segs;
 			}
 
 			if (gso_partial)
-				tot_len = skb_shinfo(skb)->gso_size +
-					  SKB_GSO_CB(skb)->data_offset +
-					  skb->head - (unsigned char *)iph;
+				tot_len = skb_shinfo(skb)->gso_size + SKB_GSO_CB(skb)->data_offset + skb->head - (unsigned char*)iph;
 			else
 				tot_len = skb->len - nhoff;
-		} else {
+		}
+		else
+		{
 			if (!fixedid)
 				iph->id = htons(id++);
 			tot_len = skb->len - nhoff;
@@ -1416,7 +1444,7 @@ struct sk_buff *inet_gso_segment(struct sk_buff *skb,
 		ip_send_check(iph);
 		if (encap)
 			skb_reset_inner_headers(skb);
-		skb->network_header = (u8 *)iph - skb->head;
+		skb->network_header = (u8*)iph - skb->head;
 		skb_reset_mac_len(skb);
 	} while ((skb = skb->next));
 
@@ -1424,8 +1452,7 @@ out:
 	return segs;
 }
 
-static struct sk_buff *ipip_gso_segment(struct sk_buff *skb,
-					netdev_features_t features)
+static struct sk_buff* ipip_gso_segment(struct sk_buff* skb, netdev_features_t features)
 {
 	if (!(skb_shinfo(skb)->gso_type & SKB_GSO_IPXIP4))
 		return ERR_PTR(-EINVAL);
@@ -1433,12 +1460,12 @@ static struct sk_buff *ipip_gso_segment(struct sk_buff *skb,
 	return inet_gso_segment(skb, features);
 }
 
-struct sk_buff *inet_gro_receive(struct list_head *head, struct sk_buff *skb)
+struct sk_buff* inet_gro_receive(struct list_head* head, struct sk_buff* skb)
 {
-	const struct net_offload *ops;
-	struct sk_buff *pp = NULL;
-	const struct iphdr *iph;
-	struct sk_buff *p;
+	const struct net_offload* ops;
+	struct sk_buff* pp = NULL;
+	const struct iphdr* iph;
+	struct sk_buff* p;
 	unsigned int hlen;
 	unsigned int off;
 	unsigned int id;
@@ -1448,7 +1475,8 @@ struct sk_buff *inet_gro_receive(struct list_head *head, struct sk_buff *skb)
 	off = skb_gro_offset(skb);
 	hlen = off + sizeof(*iph);
 	iph = skb_gro_header_fast(skb, off);
-	if (skb_gro_header_hard(skb, hlen)) {
+	if (skb_gro_header_hard(skb, hlen))
+	{
 		iph = skb_gro_header_slow(skb, hlen, off);
 		if (unlikely(!iph))
 			goto out;
@@ -1461,44 +1489,41 @@ struct sk_buff *inet_gro_receive(struct list_head *head, struct sk_buff *skb)
 	if (!ops || !ops->callbacks.gro_receive)
 		goto out_unlock;
 
-	if (*(u8 *)iph != 0x45)
+	if (*(u8*)iph != 0x45)
 		goto out_unlock;
 
 	if (ip_is_fragment(iph))
 		goto out_unlock;
 
-	if (unlikely(ip_fast_csum((u8 *)iph, 5)))
+	if (unlikely(ip_fast_csum((u8*)iph, 5)))
 		goto out_unlock;
 
-	id = ntohl(*(__be32 *)&iph->id);
-	flush = (u16)((ntohl(*(__be32 *)iph) ^ skb_gro_len(skb)) | (id & ~IP_DF));
+	id = ntohl(*(__be32*)&iph->id);
+	flush = (u16)((ntohl(*(__be32*)iph) ^ skb_gro_len(skb)) | (id & ~IP_DF));
 	id >>= 16;
 
-	list_for_each_entry(p, head, list) {
-		struct iphdr *iph2;
+	list_for_each_entry(p, head, list)
+	{
+		struct iphdr* iph2;
 		u16 flush_id;
 
 		if (!NAPI_GRO_CB(p)->same_flow)
 			continue;
 
-		iph2 = (struct iphdr *)(p->data + off);
+		iph2 = (struct iphdr*)(p->data + off);
 		/* The above works because, with the exception of the top
 		 * (inner most) layer, we only aggregate pkts with the same
 		 * hdr length so all the hdrs we'll need to verify will start
 		 * at the same offset.
 		 */
-		if ((iph->protocol ^ iph2->protocol) |
-		    ((__force u32)iph->saddr ^ (__force u32)iph2->saddr) |
-		    ((__force u32)iph->daddr ^ (__force u32)iph2->daddr)) {
+		if ((iph->protocol ^ iph2->protocol) | ((__force u32)iph->saddr ^ (__force u32)iph2->saddr) | ((__force u32)iph->daddr ^ (__force u32)iph2->daddr))
+		{
 			NAPI_GRO_CB(p)->same_flow = 0;
 			continue;
 		}
 
 		/* All fields must match except length and checksum. */
-		NAPI_GRO_CB(p)->flush |=
-			(iph->ttl ^ iph2->ttl) |
-			(iph->tos ^ iph2->tos) |
-			((iph->frag_off ^ iph2->frag_off) & htons(IP_DF));
+		NAPI_GRO_CB(p)->flush |= (iph->ttl ^ iph2->ttl) | (iph->tos ^ iph2->tos) | ((iph->frag_off ^ iph2->frag_off) & htons(IP_DF));
 
 		NAPI_GRO_CB(p)->flush |= flush;
 
@@ -1514,8 +1539,8 @@ struct sk_buff *inet_gro_receive(struct list_head *head, struct sk_buff *skb)
 		 * values 0 - 0xFFFF, while a non-atomic check can only
 		 * return 0 or 0xFFFF.
 		 */
-		if (!NAPI_GRO_CB(p)->is_atomic ||
-		    !(iph->frag_off & htons(IP_DF))) {
+		if (!NAPI_GRO_CB(p)->is_atomic || !(iph->frag_off & htons(IP_DF)))
+		{
 			flush_id ^= NAPI_GRO_CB(p)->count;
 			flush_id = flush_id ? 0xFFFF : 0;
 		}
@@ -1542,8 +1567,7 @@ struct sk_buff *inet_gro_receive(struct list_head *head, struct sk_buff *skb)
 	skb_gro_pull(skb, sizeof(*iph));
 	skb_set_transport_header(skb, skb_gro_offset(skb));
 
-	pp = indirect_call_gro_receive(tcp4_gro_receive, udp4_gro_receive,
-				       ops->callbacks.gro_receive, head, skb);
+	pp = indirect_call_gro_receive(tcp4_gro_receive, udp4_gro_receive, ops->callbacks.gro_receive, head, skb);
 
 out_unlock:
 	rcu_read_unlock();
@@ -1554,10 +1578,10 @@ out:
 	return pp;
 }
 
-static struct sk_buff *ipip_gro_receive(struct list_head *head,
-					struct sk_buff *skb)
+static struct sk_buff* ipip_gro_receive(struct list_head* head, struct sk_buff* skb)
 {
-	if (NAPI_GRO_CB(skb)->encap_mark) {
+	if (NAPI_GRO_CB(skb)->encap_mark)
+	{
 		NAPI_GRO_CB(skb)->flush = 1;
 		return NULL;
 	}
@@ -1567,7 +1591,7 @@ static struct sk_buff *ipip_gro_receive(struct list_head *head,
 	return inet_gro_receive(head, skb);
 }
 
-#define SECONDS_PER_DAY	86400
+#define SECONDS_PER_DAY 86400
 
 /* inet_current_timestamp - Return IP network timestamp
  *
@@ -1593,7 +1617,7 @@ __be32 inet_current_timestamp(void)
 }
 EXPORT_SYMBOL(inet_current_timestamp);
 
-int inet_recv_error(struct sock *sk, struct msghdr *msg, int len, int *addr_len)
+int inet_recv_error(struct sock* sk, struct msghdr* msg, int len, int* addr_len)
 {
 	if (sk->sk_family == AF_INET)
 		return ip_recv_error(sk, msg, len, addr_len);
@@ -1604,15 +1628,16 @@ int inet_recv_error(struct sock *sk, struct msghdr *msg, int len, int *addr_len)
 	return -EINVAL;
 }
 
-int inet_gro_complete(struct sk_buff *skb, int nhoff)
+int inet_gro_complete(struct sk_buff* skb, int nhoff)
 {
 	__be16 newlen = htons(skb->len - nhoff);
-	struct iphdr *iph = (struct iphdr *)(skb->data + nhoff);
-	const struct net_offload *ops;
+	struct iphdr* iph = (struct iphdr*)(skb->data + nhoff);
+	const struct net_offload* ops;
 	int proto = iph->protocol;
 	int err = -ENOSYS;
 
-	if (skb->encapsulation) {
+	if (skb->encapsulation)
+	{
 		skb_set_inner_protocol(skb, cpu_to_be16(ETH_P_IP));
 		skb_set_inner_network_header(skb, nhoff);
 	}
@@ -1629,9 +1654,7 @@ int inet_gro_complete(struct sk_buff *skb, int nhoff)
 	 * because any hdr with option will have been flushed in
 	 * inet_gro_receive().
 	 */
-	err = INDIRECT_CALL_2(ops->callbacks.gro_complete,
-			      tcp4_gro_complete, udp4_gro_complete,
-			      skb, nhoff + sizeof(*iph));
+	err = INDIRECT_CALL_2(ops->callbacks.gro_complete, tcp4_gro_complete, udp4_gro_complete, skb, nhoff + sizeof(*iph));
 
 out_unlock:
 	rcu_read_unlock();
@@ -1639,21 +1662,20 @@ out_unlock:
 	return err;
 }
 
-static int ipip_gro_complete(struct sk_buff *skb, int nhoff)
+static int ipip_gro_complete(struct sk_buff* skb, int nhoff)
 {
 	skb->encapsulation = 1;
 	skb_shinfo(skb)->gso_type |= SKB_GSO_IPXIP4;
 	return inet_gro_complete(skb, nhoff);
 }
 
-int inet_ctl_sock_create(struct sock **sk, unsigned short family,
-			 unsigned short type, unsigned char protocol,
-			 struct net *net)
+int inet_ctl_sock_create(struct sock** sk, unsigned short family, unsigned short type, unsigned char protocol, struct net* net)
 {
-	struct socket *sock;
+	struct socket* sock;
 	int rc = sock_create_kern(net, family, type, protocol, &sock);
 
-	if (rc == 0) {
+	if (rc == 0)
+	{
 		*sk = sock->sk;
 		(*sk)->sk_allocation = GFP_ATOMIC;
 		/*
@@ -1666,50 +1688,50 @@ int inet_ctl_sock_create(struct sock **sk, unsigned short family,
 }
 EXPORT_SYMBOL_GPL(inet_ctl_sock_create);
 
-u64 snmp_get_cpu_field(void __percpu *mib, int cpu, int offt)
+u64 snmp_get_cpu_field(void __percpu* mib, int cpu, int offt)
 {
-	return  *(((unsigned long *)per_cpu_ptr(mib, cpu)) + offt);
+	return *(((unsigned long*)per_cpu_ptr(mib, cpu)) + offt);
 }
 EXPORT_SYMBOL_GPL(snmp_get_cpu_field);
 
-unsigned long snmp_fold_field(void __percpu *mib, int offt)
+unsigned long snmp_fold_field(void __percpu* mib, int offt)
 {
 	unsigned long res = 0;
 	int i;
 
-	for_each_possible_cpu(i)
-		res += snmp_get_cpu_field(mib, i, offt);
+	for_each_possible_cpu(i) res += snmp_get_cpu_field(mib, i, offt);
 	return res;
 }
 EXPORT_SYMBOL_GPL(snmp_fold_field);
 
-#if BITS_PER_LONG==32
+#if BITS_PER_LONG == 32
 
-u64 snmp_get_cpu_field64(void __percpu *mib, int cpu, int offt,
-			 size_t syncp_offset)
+u64 snmp_get_cpu_field64(void __percpu* mib, int cpu, int offt, size_t syncp_offset)
 {
-	void *bhptr;
-	struct u64_stats_sync *syncp;
+	void* bhptr;
+	struct u64_stats_sync* syncp;
 	u64 v;
 	unsigned int start;
 
 	bhptr = per_cpu_ptr(mib, cpu);
-	syncp = (struct u64_stats_sync *)(bhptr + syncp_offset);
-	do {
+	syncp = (struct u64_stats_sync*)(bhptr + syncp_offset);
+	do
+	{
 		start = u64_stats_fetch_begin_irq(syncp);
-		v = *(((u64 *)bhptr) + offt);
+		v = *(((u64*)bhptr) + offt);
 	} while (u64_stats_fetch_retry_irq(syncp, start));
 
 	return v;
 }
 EXPORT_SYMBOL_GPL(snmp_get_cpu_field64);
 
-u64 snmp_fold_field64(void __percpu *mib, int offt, size_t syncp_offset)
+u64 snmp_fold_field64(void __percpu* mib, int offt, size_t syncp_offset)
 {
 	u64 res = 0;
 	int cpu;
 
-	for_each_possible_cpu(cpu) {
+	for_each_possible_cpu(cpu)
+	{
 		res += snmp_get_cpu_field64(mib, cpu, offt, syncp_offset);
 	}
 	return res;
@@ -1719,7 +1741,7 @@ EXPORT_SYMBOL_GPL(snmp_fold_field64);
 
 #ifdef CONFIG_IP_MULTICAST
 static const struct net_protocol igmp_protocol = {
-	.handler =	igmp_rcv,
+	.handler = igmp_rcv,
 };
 #endif
 
@@ -1727,11 +1749,11 @@ static const struct net_protocol igmp_protocol = {
  * early_demux can change based on sysctl.
  */
 static struct net_protocol tcp_protocol = {
-	.early_demux	=	tcp_v4_early_demux,
-	.early_demux_handler =  tcp_v4_early_demux,
-	.handler	=	tcp_v4_rcv,
-	.err_handler	=	tcp_v4_err,
-	.no_policy	=	1,
+	.early_demux = tcp_v4_early_demux,
+	.early_demux_handler = tcp_v4_early_demux,
+	.handler = tcp_v4_rcvtcp_v4_rcv,
+	.err_handler = tcp_v4_err,
+	.no_policy = 1,
 	.icmp_strict_tag_validation = 1,
 };
 
@@ -1739,20 +1761,20 @@ static struct net_protocol tcp_protocol = {
  * early_demux can change based on sysctl.
  */
 static struct net_protocol udp_protocol = {
-	.early_demux =	udp_v4_early_demux,
-	.early_demux_handler =	udp_v4_early_demux,
-	.handler =	udp_rcv,
-	.err_handler =	udp_err,
-	.no_policy =	1,
+	.early_demux = udp_v4_early_demux,
+	.early_demux_handler = udp_v4_early_demux,
+	.handler = udp_rcv,
+	.err_handler = udp_err,
+	.no_policy = 1,
 };
 
 static const struct net_protocol icmp_protocol = {
-	.handler =	icmp_rcv,
-	.err_handler =	icmp_err,
-	.no_policy =	1,
+	.handler = icmp_rcv,
+	.err_handler = icmp_err,
+	.no_policy = 1,
 };
 
-static __net_init int ipv4_mib_init_net(struct net *net)
+static __net_init int ipv4_mib_init_net(struct net* net)
 {
 	int i;
 
@@ -1763,8 +1785,9 @@ static __net_init int ipv4_mib_init_net(struct net *net)
 	if (!net->mib.ip_statistics)
 		goto err_ip_mib;
 
-	for_each_possible_cpu(i) {
-		struct ipstats_mib *af_inet_stats;
+	for_each_possible_cpu(i)
+	{
+		struct ipstats_mib* af_inet_stats;
 		af_inet_stats = per_cpu_ptr(net->mib.ip_statistics, i);
 		u64_stats_init(&af_inet_stats->syncp);
 	}
@@ -1781,8 +1804,7 @@ static __net_init int ipv4_mib_init_net(struct net *net)
 	net->mib.icmp_statistics = alloc_percpu(struct icmp_mib);
 	if (!net->mib.icmp_statistics)
 		goto err_icmp_mib;
-	net->mib.icmpmsg_statistics = kzalloc(sizeof(struct icmpmsg_mib),
-					      GFP_KERNEL);
+	net->mib.icmpmsg_statistics = kzalloc(sizeof(struct icmpmsg_mib), GFP_KERNEL);
 	if (!net->mib.icmpmsg_statistics)
 		goto err_icmpmsg_mib;
 
@@ -1805,7 +1827,7 @@ err_tcp_mib:
 	return -ENOMEM;
 }
 
-static __net_exit void ipv4_mib_exit_net(struct net *net)
+static __net_exit void ipv4_mib_exit_net(struct net* net)
 {
 	kfree(net->mib.icmpmsg_statistics);
 	free_percpu(net->mib.icmp_statistics);
@@ -1830,14 +1852,14 @@ static int __init init_ipv4_mibs(void)
 	return register_pernet_subsys(&ipv4_mib_ops);
 }
 
-static __net_init int inet_init_net(struct net *net)
+static __net_init int inet_init_net(struct net* net)
 {
 	/*
 	 * Set defaults for local port range
 	 */
 	seqlock_init(&net->ipv4.ip_local_ports.lock);
-	net->ipv4.ip_local_ports.range[0] =  32768;
-	net->ipv4.ip_local_ports.range[1] =  60999;
+	net->ipv4.ip_local_ports.range[0] = 32768;
+	net->ipv4.ip_local_ports.range[1] = 60999;
 
 	seqlock_init(&net->ipv4.ping_group_range.lock);
 	/*
@@ -1936,8 +1958,8 @@ static struct packet_type ip_packet_type __read_mostly = {
 
 static int __init inet_init(void)
 {
-	struct inet_protosw *q;
-	struct list_head *r;
+	struct inet_protosw* q;
+	struct list_head* r;
 	int rc;
 
 	sock_skb_cb_check_size(sizeof(struct inet_skb_parm));
@@ -2022,9 +2044,9 @@ static int __init inet_init(void)
 	if (icmp_init() < 0)
 		panic("Failed to create the ICMP control socket.\n");
 
-	/*
-	 *	Initialise the multicast router
-	 */
+		/*
+		 *	Initialise the multicast router
+		 */
 #if defined(CONFIG_IP_MROUTE)
 	if (ip_mr_init())
 		pr_crit("%s: Cannot init ipv4 mroute\n", __func__);
@@ -2093,7 +2115,7 @@ out_raw:
 	goto out;
 }
 
-#else /* CONFIG_PROC_FS */
+#else  /* CONFIG_PROC_FS */
 static int __init ipv4_proc_init(void)
 {
 	return 0;

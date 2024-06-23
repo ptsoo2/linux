@@ -36,16 +36,14 @@ static inline bool net_busy_loop_on(void)
 	return sysctl_net_busy_poll;
 }
 
-static inline bool sk_can_busy_loop(const struct sock *sk)
+static inline bool sk_can_busy_loop(const struct sock* sk)
 {
 	return READ_ONCE(sk->sk_ll_usec) && !signal_pending(current);
 }
 
-bool sk_busy_loop_end(void *p, unsigned long start_time);
+bool sk_busy_loop_end(void* p, unsigned long start_time);
 
-void napi_busy_loop(unsigned int napi_id,
-		    bool (*loop_end)(void *, unsigned long),
-		    void *loop_end_arg, bool prefer_busy_poll, u16 budget);
+void napi_busy_loop(unsigned int napi_id, bool (*loop_end)(void*, unsigned long), void* loop_end_arg, bool prefer_busy_poll, u16 budget);
 
 #else /* CONFIG_NET_RX_BUSY_POLL */
 static inline unsigned long net_busy_loop_on(void)
@@ -53,7 +51,7 @@ static inline unsigned long net_busy_loop_on(void)
 	return 0;
 }
 
-static inline bool sk_can_busy_loop(struct sock *sk)
+static inline bool sk_can_busy_loop(struct sock* sk)
 {
 	return false;
 }
@@ -75,7 +73,8 @@ static inline bool busy_loop_timeout(unsigned long start_time)
 #ifdef CONFIG_NET_RX_BUSY_POLL
 	unsigned long bp_usec = READ_ONCE(sysctl_net_busy_poll);
 
-	if (bp_usec) {
+	if (bp_usec)
+	{
 		unsigned long end_time = start_time + bp_usec;
 		unsigned long now = busy_loop_current_time();
 
@@ -85,13 +84,13 @@ static inline bool busy_loop_timeout(unsigned long start_time)
 	return true;
 }
 
-static inline bool sk_busy_loop_timeout(struct sock *sk,
-					unsigned long start_time)
+static inline bool sk_busy_loop_timeout(struct sock* sk, unsigned long start_time)
 {
 #ifdef CONFIG_NET_RX_BUSY_POLL
 	unsigned long bp_usec = READ_ONCE(sk->sk_ll_usec);
 
-	if (bp_usec) {
+	if (bp_usec)
+	{
 		unsigned long end_time = start_time + bp_usec;
 		unsigned long now = busy_loop_current_time();
 
@@ -101,21 +100,18 @@ static inline bool sk_busy_loop_timeout(struct sock *sk,
 	return true;
 }
 
-static inline void sk_busy_loop(struct sock *sk, int nonblock)
+static inline void sk_busy_loop(struct sock* sk, int nonblock)
 {
 #ifdef CONFIG_NET_RX_BUSY_POLL
 	unsigned int napi_id = READ_ONCE(sk->sk_napi_id);
 
 	if (napi_id >= MIN_NAPI_ID)
-		napi_busy_loop(napi_id, nonblock ? NULL : sk_busy_loop_end, sk,
-			       READ_ONCE(sk->sk_prefer_busy_poll),
-			       READ_ONCE(sk->sk_busy_poll_budget) ?: BUSY_POLL_BUDGET);
+		napi_busy_loop(napi_id, nonblock ? NULL : sk_busy_loop_end, sk, READ_ONCE(sk->sk_prefer_busy_poll), READ_ONCE(sk->sk_busy_poll_budget) ?: BUSY_POLL_BUDGET);
 #endif
 }
 
 /* used in the NIC receive handler to mark the skb */
-static inline void skb_mark_napi_id(struct sk_buff *skb,
-				    struct napi_struct *napi)
+static inline void skb_mark_napi_id(struct sk_buff* skb, struct napi_struct* napi)
 {
 #ifdef CONFIG_NET_RX_BUSY_POLL
 	/* If the skb was already marked with a valid NAPI ID, avoid overwriting
@@ -126,8 +122,9 @@ static inline void skb_mark_napi_id(struct sk_buff *skb,
 #endif
 }
 
-/* used in the protocol hanlder to propagate the napi_id to the socket */
-static inline void sk_mark_napi_id(struct sock *sk, const struct sk_buff *skb)
+// 프로토콜 핸들러에서 소켓으로 napi_id를 전파하는 데 사용됩니다.
+// napi: Network Application Programming Interface?
+static inline void sk_mark_napi_id(struct sock* sk, const struct sk_buff* skb)
 {
 #ifdef CONFIG_NET_RX_BUSY_POLL
 	WRITE_ONCE(sk->sk_napi_id, skb->napi_id);
@@ -135,7 +132,7 @@ static inline void sk_mark_napi_id(struct sock *sk, const struct sk_buff *skb)
 	sk_rx_queue_set(sk, skb);
 }
 
-static inline void __sk_mark_napi_id_once(struct sock *sk, unsigned int napi_id)
+static inline void __sk_mark_napi_id_once(struct sock* sk, unsigned int napi_id)
 {
 #ifdef CONFIG_NET_RX_BUSY_POLL
 	if (!READ_ONCE(sk->sk_napi_id))
@@ -144,16 +141,14 @@ static inline void __sk_mark_napi_id_once(struct sock *sk, unsigned int napi_id)
 }
 
 /* variant used for unconnected sockets */
-static inline void sk_mark_napi_id_once(struct sock *sk,
-					const struct sk_buff *skb)
+static inline void sk_mark_napi_id_once(struct sock* sk, const struct sk_buff* skb)
 {
 #ifdef CONFIG_NET_RX_BUSY_POLL
 	__sk_mark_napi_id_once(sk, skb->napi_id);
 #endif
 }
 
-static inline void sk_mark_napi_id_once_xdp(struct sock *sk,
-					    const struct xdp_buff *xdp)
+static inline void sk_mark_napi_id_once_xdp(struct sock* sk, const struct xdp_buff* xdp)
 {
 #ifdef CONFIG_NET_RX_BUSY_POLL
 	__sk_mark_napi_id_once(sk, xdp->rxq->napi_id);
